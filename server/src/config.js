@@ -2,10 +2,10 @@
 // It reads sensitive data from environment variables, with fallbacks for local development.
 export let config = {
   db: {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'your_db_user',
-    password: process.env.DB_PASSWORD || 'your_db_password',
-    database: process.env.DB_NAME || 'redtedcasino'
+    host: process.env.DB_HOST || 'db5018640333.hosting-data.io',
+    user: process.env.DB_USER || 'dbu536762',
+    password: process.env.DB_PASSWORD || 'Dag0D0g0503!',
+    database: process.env.DB_NAME || 'dbs14774816'
   },
   adminPassword: process.env.ADMIN_PASSWORD || 'supersecretpassword',
   games: {
