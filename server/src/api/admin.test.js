@@ -1,14 +1,19 @@
 import request from 'supertest';
-import app from '../index.js';
-import { getAllUsers, createUser, getUser, updateUserBalance } from '../database/operations.js';
 
-// Mock the entire module with a factory function
-jest.mock('../database/operations.js', () => ({
+// Use top-level await to dynamically import the app after mocks are set up
+const { default: app } = await import('../index.js');
+
+// Use jest.unstable_mockModule to mock before imports
+jest.unstable_mockModule('../database/operations.js', () => ({
     getAllUsers: jest.fn(),
     createUser: jest.fn(),
     getUser: jest.fn(),
     updateUserBalance: jest.fn()
 }));
+
+// Now that the mock is in place, we can import the mocked functions
+const { getAllUsers } = await import('../database/operations.js');
+
 
 describe('Admin API', () => {
 
@@ -29,7 +34,6 @@ describe('Admin API', () => {
                 { id: 1, username: 'testuser1', balance: 100 },
                 { id: 2, username: 'testuser2', balance: 200 }
             ];
-            // Since we imported the mocked function, we can set its implementation
             getAllUsers.mockResolvedValue(mockUsers);
 
             const response = await request(app)
