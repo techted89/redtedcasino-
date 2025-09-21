@@ -1,10 +1,7 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import request from 'supertest';
 
-// Use top-level await to dynamically import the app after mocks are set up
-const { default: app } = await import('../index.js');
-
-// Use jest.unstable_mockModule to mock before imports
+// 1. Set up the mock for the module. This MUST come before any imports that use it.
 jest.unstable_mockModule('../database/operations.js', () => ({
     getAllUsers: jest.fn(),
     createUser: jest.fn(),
@@ -12,8 +9,11 @@ jest.unstable_mockModule('../database/operations.js', () => ({
     updateUserBalance: jest.fn()
 }));
 
-// Now that the mock is in place, we can import the mocked functions
+// 2. Now that the mock is defined, we can import the mocked functions to control them.
 const { getAllUsers } = await import('../database/operations.js');
+
+// 3. And import the application code, which will now see the mocked version.
+const { default: app } = await import('../index.js');
 
 
 describe('Admin API', () => {
