@@ -4,8 +4,8 @@ import {
     updateUserBalance,
     getUser,
     getAllUsers
-} from '../../database/operations.js'; // Updated path
-import { config, __UNSAFE_updateGameConfig } from '../../config.js'; // Updated path
+} from '../database/operations.js';
+import { config, __UNSAFE_updateGameConfig } from '../config.js';
 
 const router = Router();
 
