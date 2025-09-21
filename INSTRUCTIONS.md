@@ -11,9 +11,37 @@ The application has been restructured to support multiple slot machine games. Th
 
 ## Server Setup
 
-The server setup process remains the same.
--   **Prerequisites**: Node.js and npm.
--   **Installation**: Navigate to the `server` directory and run `npm install`.
+-   **Prerequisites**: Node.js, npm, and a running MariaDB (or MySQL) server.
+
+### Database Setup (MariaDB)
+The application is now configured to use a **MariaDB/MySQL** database.
+
+1.  **Create the Database and Table**:
+    Connect to your MariaDB server and run the following SQL commands to create the database and the required `users` table.
+    ```sql
+    CREATE DATABASE IF NOT EXISTS redtedcasino;
+    USE redtedcasino;
+    CREATE TABLE IF NOT EXISTS users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        username VARCHAR(255) NOT NULL UNIQUE,
+        balance DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    ```
+
+2.  **Configure Connection**:
+    Open the `server/src/config.js` file and update the `db` object with your MariaDB connection details.
+    ```javascript
+    db: {
+        host: 'localhost',
+        user: 'your_db_user',
+        password: 'your_db_password',
+        database: 'redtedcasino'
+    }
+    ```
+
+### Application Installation
+-   **Installation**: Navigate to the `server` directory and run `npm install`. This will install all dependencies, including the `mysql2` driver.
 -   **Running**: From the `server` directory, run `npm start`. The server will start on port 3000.
 -   **Production**: Using a process manager like `pm2` is recommended for production.
 

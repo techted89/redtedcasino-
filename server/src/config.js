@@ -1,5 +1,11 @@
 // This file contains the configuration for the application.
 export let config = {
+  db: {
+    host: 'localhost',
+    user: 'your_db_user',
+    password: 'your_db_password',
+    database: 'redtedcasino'
+  },
   adminPassword: 'supersecretpassword',
   games: {
     'bear-slot': {

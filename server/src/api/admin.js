@@ -1,6 +1,11 @@
 import { Router } from 'express';
-import { createUser, updateUserBalance, getUser, getAllUsers } from '../database.js';
-import { config, __UNSAFE_updateGameConfig } from '../config.js'; // Updated import
+import {
+    createUser,
+    updateUserBalance,
+    getUser,
+    getAllUsers
+} from '../../database/operations.js'; // Updated path
+import { config, __UNSAFE_updateGameConfig } from '../../config.js'; // Updated path
 
 const router = Router();
 
@@ -50,48 +55,59 @@ router.put('/games/:gameId', (req, res) => {
         return res.status(400).json({ message: 'Paytable data is required' });
     }
 
-    // This is the "hacky" part for this environment.
-    // In a real app, this would write to a DB. Here, we update the in-memory
-    // object. To persist changes across restarts, the config.js file
-    // would need to be manually updated.
     __UNSAFE_updateGameConfig(gameId, paytable);
 
     res.json({ message: `Paytable for '${gameId}' updated successfully in memory.` });
 });
 
 
-// --- User Management ---
-router.get('/users', (req, res) => {
-  const users = getAllUsers();
-  res.json(users);
+// --- User Management (now async) ---
+
+router.get('/users', async (req, res) => {
+    try {
+        const users = await getAllUsers();
+        res.json(users);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 });
 
-router.post('/users/create', (req, res) => {
-  const { username, initialBalance } = req.body;
-  if (!username || initialBalance === undefined) {
-    return res.status(400).json({ message: 'Username and initial balance are required' });
-  }
-  const newUser = createUser(username, initialBalance);
-  res.status(201).json(newUser);
+router.post('/users/create', async (req, res) => {
+    try {
+        const { username, initialBalance } = req.body;
+        if (!username || initialBalance === undefined) {
+            return res.status(400).json({ message: 'Username and initial balance are required' });
+        }
+        const newUser = await createUser(username, initialBalance);
+        res.status(201).json(newUser);
+    } catch (error) {
+        console.error('Error creating user:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 });
 
-router.put('/users/:userId/balance', (req, res) => {
-  const { userId } = req.params;
-  const { newBalance } = req.body;
+router.put('/users/:userId/balance', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { newBalance } = req.body;
+        if (newBalance === undefined) {
+            return res.status(400).json({ message: 'New balance is required' });
+        }
 
-  if (newBalance === undefined) {
-    return res.status(400).json({ message: 'New balance is required' });
-  }
+        const user = await getUser(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
 
-  const user = getUser(userId);
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
+        const balanceDifference = newBalance - user.balance;
 
-  const balanceDifference = newBalance - user.balance;
-  const updatedUser = updateUserBalance(userId, balanceDifference);
-
-  res.json(updatedUser);
+        const updatedUser = await updateUserBalance(userId, balanceDifference);
+        res.json(updatedUser);
+    } catch (error) {
+        console.error('Error updating balance:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
 });
 
 export default router;
