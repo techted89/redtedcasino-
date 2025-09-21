@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createUser, updateUserBalance, getUser } from '../database.js';
+import { createUser, updateUserBalance, getUser, getAllUsers } from '../database.js';
 import { config } from '../config.js';
 
 const router = Router();
@@ -78,6 +78,12 @@ export function __UNSAFE_updateConfig(newPaytable) {
 
 
 // --- User Management ---
+
+// Get all users
+router.get('/users', (req, res) => {
+  const users = getAllUsers();
+  res.json(users);
+});
 
 // Create a new user
 router.post('/users/create', (req, res) => {

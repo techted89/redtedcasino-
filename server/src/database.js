@@ -30,6 +30,10 @@ export const updateUserBalance = (userId, amount) => {
   return null;
 };
 
+export const getAllUsers = () => {
+  return Object.values(users);
+};
+
 export const getAdmin = (adminId) => {
     return admins[adminId]
 }
