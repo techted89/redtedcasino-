@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  app:
+    build: ./server
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      # These variables will be read by config.js
+      # For local development, you can create a .env file
+      # For production, these should be set securely by your host or deployment system
+      DB_HOST: 'host.docker.internal' # Use this on Docker Desktop to connect to localhost on the host machine
+      DB_USER: 'your_db_user'
+      DB_PASSWORD: 'your_db_password'
+      DB_NAME: 'redtedcasino'
+      ADMIN_PASSWORD: 'supersecretpassword'

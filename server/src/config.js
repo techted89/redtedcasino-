@@ -1,12 +1,13 @@
 // This file contains the configuration for the application.
+// It reads sensitive data from environment variables, with fallbacks for local development.
 export let config = {
   db: {
-    host: 'db5018640333.hosting-data.io',
-    user: 'dbu536762',
-    password: 'Dag0D0g0503!',
-    database: 'Casino-Server-DB'
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'your_db_user',
+    password: process.env.DB_PASSWORD || 'your_db_password',
+    database: process.env.DB_NAME || 'redtedcasino'
   },
-  adminPassword: 'supersecretpassword',
+  adminPassword: process.env.ADMIN_PASSWORD || 'supersecretpassword',
   games: {
     'bear-slot': {
       id: 'bear-slot',

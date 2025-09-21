@@ -3,10 +3,9 @@ import spinRouter from './api/spin.js';
 import adminRouter from './api/admin.js';
 import { getUserByUsername } from './database/operations.js';
 import { config } from './config.js';
-import { testConnection } from './database/connection.js'; // Updated import
 
 const app = express();
-const port = 3000;
+const port = 3000; // This can be removed, but it's harmless
 
 app.use(express.json());
 
@@ -19,7 +18,7 @@ app.post('/api/users/login', async (req, res) => {
         }
         const user = await getUserByUsername(username);
         if (user) {
-            const token = `user-token-${user.id}-${Date.now()}`; // Changed from _id to id
+            const token = `user-token-${user.id}-${Date.now()}`;
             res.json({ message: 'Login successful', token, user });
         } else {
             res.status(404).json({ message: 'User not found. Please contact an admin.' });
@@ -48,14 +47,4 @@ app.get('/', (req, res) => {
   res.send('Slot machine server is running!');
 });
 
-// Start the server only after the database connection is established
-testConnection()
-    .then(() => {
-        app.listen(port, () => {
-            console.log(`Server listening at http://localhost:${port}`);
-        });
-    })
-    .catch(error => {
-        console.error('Failed to connect to the database, server did not start.', error);
-        process.exit(1);
-    });
+export default app; // Export the app for testing
