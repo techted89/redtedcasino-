@@ -1,88 +1,65 @@
 # Setup and Installation Instructions
 
-This document provides instructions for setting up and running the slot machine application on your server.
+This document provides instructions for setting up and running the multi-game slot machine application.
 
 ## Overview
 
-The application consists of two main parts:
-1.  **Server**: A Node.js application that handles all game logic.
-2.  **Client**: A web client for users to interact with the game (currently a placeholder).
+The application has been restructured to support multiple slot machine games. The main components are:
+1.  **Server**: A Node.js application that handles all game logic, user authentication, and game configuration.
+2.  **Client**: A set of web pages for the user login, game selection, and the slot machine game itself.
+3.  **Admin Panel**: A comprehensive admin page (`admin.html`) for managing users and game configurations.
 
 ## Server Setup
 
-### Prerequisites
--   Node.js and npm installed on your server.
+The server setup process remains the same.
+-   **Prerequisites**: Node.js and npm.
+-   **Installation**: Navigate to the `server` directory and run `npm install`.
+-   **Running**: From the `server` directory, run `npm start`. The server will start on port 3000.
+-   **Production**: Using a process manager like `pm2` is recommended for production.
 
-### Steps
-1.  **Navigate to the server directory**:
-    Open a terminal and change to the `server` directory.
-    ```bash
-    cd path/to/your/project/server
-    ```
+## Application Flow
 
-2.  **Install Dependencies**:
-    Run `npm install` to download and install the required Node.js packages.
-    ```bash
-    npm install
-    ```
-
-3.  **Start the Server**:
-    Run the following command to start the server:
-    ```bash
-    npm start
-    ```
-    The server will start on port 3000 by default.
-
-4.  **Production Environment (Recommended)**:
-    For a live server, it's best to use a process manager like `pm2` to ensure the server application runs continuously.
-    ```bash
-    # Install pm2 globally
-    npm install pm2 -g
-
-    # Start the server with pm2
-    cd path/to/your/project/server
-    pm2 start src/index.js --name "slot-server"
-    ```
-
-## Client and Web Server Setup
-
-### Prerequisites
--   A web server like Nginx or Apache installed on your server.
-
-### Steps
-1.  **Serve the Client Files**:
-    Configure your web server to serve the static files from the `client` directory. The root for your site `http://redtedcasino.com/BearSlot` should point to the `client` directory.
-
-2.  **Set up a Reverse Proxy**:
-    The client needs to communicate with the Node.js server for game actions. You need to configure your web server to act as a reverse proxy, forwarding API requests from the client to the Node.js server running on port 3000. You should proxy all requests from a path like `/api/` to `http://localhost:3000`.
-
-    **Example for Nginx**:
-    You would add a `location` block to your Nginx site configuration:
-    ```nginx
-    location /api/ {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        # ... other proxy settings
-    }
-    ```
-    The exact configuration will depend on your server setup. The goal is that a request from the browser to `http://redtedcasino.com/BearSlot/api/spin` gets routed to `http://localhost:3000/api/spin`.
+1.  **User Login**: Users start at `index.html` where they must log in with a username. User accounts must be created by an admin first.
+2.  **Game Selection**: After login, users are directed to `game-selection.html`, where they can choose from a list of available slot games.
+3.  **Playing a Game**: Clicking on a game takes the user to `slot.html`, which is the interface for playing the selected slot machine.
 
 ## Admin Panel
 
-A new admin panel has been added to manage users and game settings.
+The admin panel has been updated to support the new multi-game architecture.
 
 ### Accessing the Admin Panel
-1.  Navigate to `/admin.html` in your browser (e.g., `http://redtedcasino.com/BearSlot/admin.html`).
-2.  You will be prompted for a password.
+1.  Navigate to `/admin.html` in your browser.
+2.  Log in using the admin password.
 
 ### Admin Password
 -   The default admin password is `supersecretpassword`.
--   To change the password, you must edit the `adminPassword` field in the `server/src/config.js` file and restart the server.
+-   This can be changed in the `server/src/config.js` file.
 
-### Features
-The admin panel provides the following functionalities:
--   **User Management:** Create new users with an initial balance and update the balance of existing users.
--   **Payout Management:** View and edit the payout table for the slot machine.
+### Admin Features
+-   **User Management**: Create new users and manage their balances. The user list is now searchable and sortable.
+-   **Game Management**: View all configured games and edit the paytable for each game.
 
-### Important Note on Saving Payouts
-Due to the limitations of this development environment, the "Save Payouts" button does **not** permanently save your changes. It will update the settings in the server's memory for the current session, but a server restart will revert the changes. To make permanent changes to the paytable, you must edit the `paytable` object in the `server/src/config.js` file and restart the server.
+## Managing Games
+
+### Editing a Game's Paytable
+1.  In the Admin Panel, go to the "Game Management" section.
+2.  Select a game from the dropdown list.
+3.  The paytable for that game will be displayed. You can edit the values and click "Save Paytable".
+4.  **Note**: These changes are saved in the server's memory and will be **lost on restart**. For permanent changes, you must edit the `config.js` file directly.
+
+### Adding a New Game
+To add a new slot machine game to the application, you must manually edit the `server/src/config.js` file.
+
+1.  Open `server/src/config.js`.
+2.  Inside the `config.games` object, add a new entry for your game. The key will be the new `gameId` (e.g., `'new-slot'`).
+3.  The value should be an object with the following structure:
+    ```javascript
+    'new-slot': {
+      id: 'new-slot', // Must match the key
+      name: 'My New Slot Game', // Display name
+      backgroundImage: 'URL to the game background',
+      symbols: { /* ... object of symbol keys to symbol image URLs ... */ },
+      paytable: { /* ... object defining the paytable for the new game ... */ }
+    }
+    ```
+4.  Save the `config.js` file and restart the server. The new game will now appear on the game selection page.

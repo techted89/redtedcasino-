@@ -12,6 +12,10 @@ export const getUser = (userId) => {
   return users[userId];
 };
 
+export const getUserByUsername = (username) => {
+  return Object.values(users).find(user => user.username === username);
+};
+
 export const createUser = (username, initialBalance) => {
     const newUser = {
         id: `user-${Date.now()}`,

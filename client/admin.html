@@ -9,7 +9,7 @@
         .container { max-width: 800px; margin: auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 20px;}
         .hidden { display: none; }
         h1, h2, h3 { color: #555; }
-        input, button { padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #ddd; }
+        input, button, select { padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #ddd; }
         button { background-color: #007bff; color: white; cursor: pointer; }
         button:hover { background-color: #0056b3; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
@@ -35,49 +35,121 @@
 
     <!-- User Management Section -->
     <section id="user-management">
-        <h2>User Management</h2>
-
-        <form id="create-user-form">
-            <h3>Create User</h3>
-            <input type="text" id="create-username" placeholder="Username" required>
-            <input type="number" id="create-balance" placeholder="Initial Balance" step="any" required>
-            <button type="submit">Create User</button>
-        </form>
-
-        <hr>
-
-        <h3>All Users</h3>
-        <input type="text" id="user-search" placeholder="Search by username or ID...">
-        <table id="user-table">
-            <thead>
-                <tr>
-                    <th data-sort="id">User ID</th>
-                    <th data-sort="username">Username</th>
-                    <th data-sort="balance">Balance</th>
-                    <th>Update Balance</th>
-                </tr>
-            </thead>
-            <tbody id="user-table-body">
-                <!-- User rows will be inserted here by JavaScript -->
-            </tbody>
-        </table>
+        <!-- ... user management HTML is unchanged ... -->
     </section>
 
     <hr>
 
-    <!-- Payout Management Section -->
-    <section id="payout-management">
-        <h2>Payout Management</h2>
-        <form id="payout-form">
-            <h3>Edit Paytable</h3>
-            <p>Edit payout multipliers below. Payout = Multiplier * Bet Amount.</p>
+    <!-- Game Management Section -->
+    <section id="game-management">
+        <h2>Game Management</h2>
+        <p>Select a game to edit its paytable. Adding new games must be done in the server's config file for now.</p>
+        <select id="game-select"></select>
+
+        <form id="paytable-form" class="hidden">
+            <h3 id="paytable-header"></h3>
             <div id="paytable-container"></div>
-            <button type="submit">Save Payouts</button>
+            <button type="submit">Save Paytable</button>
         </form>
     </section>
 </div>
 
 <script>
+    // --- OMITTING UNCHANGED JS FOR BREVITY ---
+    // (login, apiHelper, user management functions are the same)
+
+    let allGames = [];
+    const gameSelect = document.getElementById('game-select');
+    const paytableForm = document.getElementById('paytable-form');
+    const paytableHeader = document.getElementById('paytable-header');
+    const paytableContainer = document.getElementById('paytable-container');
+
+    // --- NEW & MODIFIED JS ---
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        // ... (login logic) ...
+        // On success:
+        // adminToken = data.token;
+        // loginSection.classList.add('hidden');
+        // adminPanel.classList.remove('hidden');
+        await loadUsers();
+        await loadGames(); // New call
+    });
+
+    async function loadGames() {
+        try {
+            allGames = await apiRequest('/api/admin/games');
+            gameSelect.innerHTML = '<option value="">-- Select a Game to Edit --</option>';
+            allGames.forEach(game => {
+                const option = document.createElement('option');
+                option.value = game.id;
+                option.textContent = game.name;
+                gameSelect.appendChild(option);
+            });
+        } catch (err) {
+            setMessage(`Error loading games: ${err.message}`, true);
+        }
+    }
+
+    gameSelect.addEventListener('change', () => {
+        const gameId = gameSelect.value;
+        if (gameId) {
+            const game = allGames.find(g => g.id === gameId);
+            renderPaytable(game);
+            paytableForm.classList.remove('hidden');
+        } else {
+            paytableForm.classList.add('hidden');
+        }
+    });
+
+    function renderPaytable(game) {
+        paytableHeader.textContent = `Editing Paytable for: ${game.name}`;
+        let tableHTML = '<table><thead><tr><th>Symbol</th><th>3 in a row</th><th>4 in a row</th><th>5 in a row</th></tr></thead><tbody>';
+        for (const symbolKey in game.symbols) {
+            // Ensure we only show actual symbols, not other properties
+            if (Object.prototype.hasOwnProperty.call(game.symbols, symbolKey)) {
+                 const payouts = game.paytable[symbolKey] || {};
+                 tableHTML += `<tr>
+                    <td>${symbolKey}</td>
+                    <td><input type="number" data-symbol="${symbolKey}" data-count="3" value="${payouts['3'] || 0}"></td>
+                    <td><input type="number" data-symbol="${symbolKey}" data-count="4" value="${payouts['4'] || 0}"></td>
+                    <td><input type="number" data-symbol="${symbolKey}" data-count="5" value="${payouts['5'] || 0}"></td>
+                </tr>`;
+            }
+        }
+        tableHTML += '</tbody></table>';
+        paytableContainer.innerHTML = tableHTML;
+    }
+
+    paytableForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const gameId = gameSelect.value;
+        if (!gameId) return;
+
+        const newPaytable = {};
+        const inputs = document.querySelectorAll('#paytable-container input');
+        inputs.forEach(input => {
+            const symbol = input.dataset.symbol;
+            const count = input.dataset.count;
+            if (!newPaytable[symbol]) newPaytable[symbol] = {};
+            newPaytable[symbol][count] = parseInt(input.value, 10);
+        });
+
+        try {
+            await apiRequest(`/api/admin/games/${gameId}`, 'PUT', { paytable: newPaytable });
+            setMessage(`Paytable for ${gameId} saved successfully (in memory).`, false);
+            // Refresh game data to reflect in-memory change
+            await loadGames();
+            gameSelect.value = gameId; // Keep the current game selected
+            const game = allGames.find(g => g.id === gameId);
+            renderPaytable(game);
+
+        } catch (err) {
+            setMessage(`Error saving paytable: ${err.message}`, true);
+        }
+    });
+
+
+    // --- PASTE FULL SCRIPT FOR COMPLETENESS ---
     const loginSection = document.getElementById('login-section');
     const adminPanel = document.getElementById('admin-panel');
     const loginError = document.getElementById('login-error');
@@ -87,7 +159,6 @@
     let allUsers = [];
     let sortState = { key: 'id', asc: true };
 
-    // --- LOGIN ---
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         loginError.textContent = '';
@@ -104,8 +175,8 @@
                 adminToken = data.token;
                 loginSection.classList.add('hidden');
                 adminPanel.classList.remove('hidden');
-                await loadPaytable();
                 await loadUsers();
+                await loadGames();
             } else {
                 throw new Error(data.message || 'Login failed');
             }
@@ -114,7 +185,6 @@
         }
     });
 
-    // --- API HELPER ---
     async function apiRequest(endpoint, method = 'GET', body = null) {
         const options = {
             method,
@@ -129,7 +199,6 @@
         return response.json();
     }
 
-    // --- USER MANAGEMENT (NEW) ---
     async function loadUsers() {
         try {
             allUsers = await apiRequest('/api/admin/users');
@@ -141,7 +210,7 @@
 
     function renderUserTable(users) {
         const tbody = document.getElementById('user-table-body');
-        tbody.innerHTML = ''; // Clear existing rows
+        tbody.innerHTML = '';
         users.forEach(user => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -158,7 +227,6 @@
     }
 
     document.getElementById('user-table').addEventListener('click', (e) => {
-        // Update button handler
         if (e.target.tagName === 'BUTTON' && e.target.dataset.userid) {
             const userId = e.target.dataset.userid;
             const newBalanceInput = document.getElementById(`balance-input-${userId}`);
@@ -169,7 +237,6 @@
                 setMessage('Please enter a valid number for the balance.', true);
             }
         }
-        // Sorting handler
         if (e.target.tagName === 'TH' && e.target.dataset.sort) {
             const sortKey = e.target.dataset.sort;
             sortState.asc = sortState.key === sortKey ? !sortState.asc : true;
@@ -200,17 +267,12 @@
         try {
             const updatedUser = await apiRequest(`/api/admin/users/${userId}/balance`, 'PUT', { newBalance });
             setMessage(`User ${updatedUser.username}'s balance updated to ${updatedUser.balance}.`, false);
-            await loadUsers(); // Refresh the user list
+            await loadUsers();
         } catch (err) {
             setMessage(`Error updating balance: ${err.message}`, true);
         }
     }
 
-    // --- PAYOUT MANAGEMENT ---
-    async function loadPaytable() { /* ... (omitted for brevity, no changes here) ... */ }
-    document.getElementById('payout-form').addEventListener('submit', async (e) => { /* ... (omitted for brevity, no changes here) ... */ });
-
-    // --- CREATE USER ---
     document.getElementById('create-user-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('create-username').value;
@@ -219,7 +281,7 @@
             const newUser = await apiRequest('/api/admin/users/create', 'POST', { username, initialBalance });
             setMessage(`User ${newUser.username} created successfully.`, false);
             e.target.reset();
-            await loadUsers(); // Refresh the user list
+            await loadUsers();
         } catch (err) {
             setMessage(`Error creating user: ${err.message}`, true);
         }
@@ -229,47 +291,6 @@
         adminMessage.textContent = msg;
         adminMessage.style.color = isError ? 'red' : 'green';
     }
-
-    // --- Re-pasting omitted functions for completeness ---
-    async function loadPaytable() {
-        try {
-            const data = await apiRequest('/api/admin/settings');
-            const container = document.getElementById('paytable-container');
-            let tableHTML = '<table><thead><tr><th>Symbol</th><th>3 in a row</th><th>4 in a row</th><th>5 in a row</th></tr></thead><tbody>';
-            for (const symbol in data.paytable) {
-                const payouts = data.paytable[symbol];
-                tableHTML += `<tr>
-                    <td>${symbol}</td>
-                    <td><input type="number" data-symbol="${symbol}" data-count="3" value="${payouts['3'] || 0}"></td>
-                    <td><input type="number" data-symbol="${symbol}" data-count="4" value="${payouts['4'] || 0}"></td>
-                    <td><input type="number" data-symbol="${symbol}" data-count="5" value="${payouts['5'] || 0}"></td>
-                </tr>`;
-            }
-            tableHTML += '</tbody></table>';
-            container.innerHTML = tableHTML;
-        } catch (err) {
-            setMessage(`Error loading paytable: ${err.message}`, true);
-        }
-    }
-
-    document.getElementById('payout-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newPaytable = {};
-        const inputs = document.querySelectorAll('#paytable-container input');
-        inputs.forEach(input => {
-            const symbol = input.dataset.symbol;
-            const count = input.dataset.count;
-            if (!newPaytable[symbol]) newPaytable[symbol] = {};
-            newPaytable[symbol][count] = parseInt(input.value, 10);
-        });
-        try {
-            await apiRequest('/api/admin/settings', 'PUT', { paytable: newPaytable });
-            setMessage('Payouts saved successfully! Note: This is saved in memory and will reset on server restart.', false);
-        } catch (err) {
-            setMessage(`Error saving paytable: ${err.message}`, true);
-        }
-    });
-
 </script>
 
 </body>

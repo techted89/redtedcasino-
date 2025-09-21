@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createUser, updateUserBalance, getUser, getAllUsers } from '../database.js';
-import { config } from '../config.js';
+import { config, __UNSAFE_updateGameConfig } from '../config.js'; // Updated import
 
 const router = Router();
 
@@ -33,59 +33,39 @@ const checkAuth = (req, res, next) => {
 // All routes below this point are protected
 router.use(checkAuth);
 
-// --- Settings Management ---
-
-// Get current game settings
-router.get('/settings', (req, res) => {
-  res.json({
-    paytable: config.paytable
-  });
+// --- Game Management ---
+router.get('/games', (req, res) => {
+    res.json(Object.values(config.games));
 });
 
-// This endpoint is special due to the environment limitations.
-// It will dynamically create the content for config.js and then
-// another tool will be used to overwrite the file.
-// This is NOT how you would do this in production.
-router.put('/settings', (req, res) => {
+// Endpoint to update a game's paytable
+router.put('/games/:gameId', (req, res) => {
+    const { gameId } = req.params;
     const { paytable } = req.body;
+
+    if (!config.games[gameId]) {
+        return res.status(404).json({ message: 'Game not found' });
+    }
     if (!paytable) {
         return res.status(400).json({ message: 'Paytable data is required' });
     }
 
-    // In a real app, you'd update a database or a secure config store.
-    // Here, we have to signal that the config file needs to be overwritten.
-    // The actual file overwrite will be done by another tool call in the agent's workflow.
-    // This endpoint just returns the new file content as a convenience.
+    // This is the "hacky" part for this environment.
+    // In a real app, this would write to a DB. Here, we update the in-memory
+    // object. To persist changes across restarts, the config.js file
+    // would need to be manually updated.
+    __UNSAFE_updateGameConfig(gameId, paytable);
 
-    const newConfigFileContent = `
-export let config = {
-  adminPassword: '${config.adminPassword}',
-  paytable: ${JSON.stringify(paytable, null, 2)}
-};
-
-export function __UNSAFE_updateConfig(newPaytable) {
-  config.paytable = newPaytable;
-}
-`;
-
-    // A real API would just return success. Here we return the content
-    // to make it easier for the agent to overwrite the file.
-    res.json({
-        message: 'Settings updated successfully. The config file needs to be overwritten.',
-        newConfigFileContent: newConfigFileContent
-    });
+    res.json({ message: `Paytable for '${gameId}' updated successfully in memory.` });
 });
 
 
 // --- User Management ---
-
-// Get all users
 router.get('/users', (req, res) => {
   const users = getAllUsers();
   res.json(users);
 });
 
-// Create a new user
 router.post('/users/create', (req, res) => {
   const { username, initialBalance } = req.body;
   if (!username || initialBalance === undefined) {
@@ -95,7 +75,6 @@ router.post('/users/create', (req, res) => {
   res.status(201).json(newUser);
 });
 
-// Update a user's balance
 router.put('/users/:userId/balance', (req, res) => {
   const { userId } = req.params;
   const { newBalance } = req.body;
