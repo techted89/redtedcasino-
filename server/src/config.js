@@ -8,6 +8,7 @@ export let config = {
     database: process.env.DB_NAME || 'dbs14774816'
   },
   adminPassword: process.env.ADMIN_PASSWORD || 'supersecretpassword',
+  jwtSecret: process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev',
   games: {
     'bear-slot': {
       id: 'bear-slot',
@@ -35,10 +36,5 @@ export let config = {
   }
 };
 
-// This is a hack to allow updating the config in this environment.
-// In a real app, this would be handled by a proper database or config management system.
-export function __UNSAFE_updateGameConfig(gameId, newPaytable) {
-  if (config.games[gameId]) {
-    config.games[gameId].paytable = newPaytable;
-  }
-}
+// The __UNSAFE_updateGameConfig function has been removed.
+// Paytables are now managed in the database.
