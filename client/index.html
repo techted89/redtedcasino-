@@ -5,52 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Red Ted Casino</title>
     <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #1a1a1a;
-            color: white;
-        }
-        .login-container {
-            padding: 40px;
-            background-color: #2c2c2c;
-            border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            text-align: center;
-        }
-        h1 {
-            margin-bottom: 20px;
-        }
-        input {
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            border: 1px solid #555;
-            background-color: #333;
-            color: white;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            border-radius: 4px;
-            border: none;
-            background-color: #d42a2a;
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #b32424;
-        }
-        #error-message {
-            margin-top: 15px;
-            color: #ff6b6b;
-        }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #1a1a1a; color: white; }
+        .login-container { padding: 40px; background-color: #2c2c2c; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; }
+        h1 { margin-bottom: 20px; }
+        input { width: calc(100% - 22px); padding: 10px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: white; }
+        button { width: 100%; padding: 10px; border-radius: 4px; border: none; background-color: #d42a2a; color: white; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #b32424; }
+        #error-message { margin-top: 15px; color: #ff6b6b; min-height: 20px; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background-color: #2c2c2c; padding: 30px; border-radius: 8px; width: 400px; text-align: left; }
+        .modal-content h2 { text-align: center; margin-top: 0; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -58,40 +23,160 @@
 <div class="login-container">
     <h1>Welcome to Red Ted Casino</h1>
     <form id="user-login-form">
-        <input type="text" id="username" placeholder="Enter your username" required>
+        <input type="text" id="username" placeholder="Username" required>
+        <input type="password" id="password" placeholder="Password" required>
         <button type="submit">Login</button>
     </form>
     <p id="error-message"></p>
 </div>
 
+<!-- Modal for forcing password change -->
+<div id="password-modal" class="modal-backdrop hidden">
+    <div class="modal-content">
+        <h2>Change Your Password</h2>
+        <p>For your security, you must change your temporary password before you can proceed.</p>
+        <form id="password-change-form">
+            <input type="password" id="new-password" placeholder="Enter new password (min 8 chars)" required>
+            <input type="password" id="confirm-password" placeholder="Confirm new password" required>
+            <button type="submit">Set Password</button>
+        </form>
+        <p id="password-error-message" class="error-message"></p>
+    </div>
+</div>
+
+<!-- Modal for forcing profile completion -->
+<div id="profile-modal" class="modal-backdrop hidden">
+    <div class="modal-content">
+        <h2>Complete Your Profile</h2>
+        <p>Please complete your profile information to continue.</p>
+        <form id="profile-update-form">
+            <input type="text" id="update-firstname" placeholder="First Name" required>
+            <input type="text" id="update-lastname" placeholder="Last Name" required>
+            <input type="number" id="update-age" placeholder="Age" required>
+            <button type="submit">Save Profile</button>
+        </form>
+        <p id="profile-error-message" class="error-message"></p>
+    </div>
+</div>
+
+
 <script>
-    document.getElementById('user-login-form').addEventListener('submit', async (e) => {
+    const loginForm = document.getElementById('user-login-form');
+    const errorMessage = document.getElementById('error-message');
+
+    const passwordModal = document.getElementById('password-modal');
+    const passwordForm = document.getElementById('password-change-form');
+    const passwordErrorMessage = document.getElementById('password-error-message');
+
+    const profileModal = document.getElementById('profile-modal');
+    const profileForm = document.getElementById('profile-update-form');
+    const profileErrorMessage = document.getElementById('profile-error-message');
+
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+        const token = sessionStorage.getItem('casinoUserToken');
+        if (!token) throw new Error('No authentication token found.');
+
+        const options = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        };
+        if (body) options.body = JSON.stringify(body);
+
+        const response = await fetch(endpoint, options);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'API Request Failed');
+        }
+        return response.json();
+    }
+
+    async function checkUserStatus() {
+        try {
+            const status = await apiRequest('/api/user/status');
+            if (!status.passwordChanged) {
+                passwordModal.classList.remove('hidden');
+            } else if (!status.profileCompleted) {
+                profileModal.classList.remove('hidden');
+            } else {
+                window.location.href = 'game-selection.html';
+            }
+        } catch (error) {
+            errorMessage.textContent = error.message;
+        }
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const username = document.getElementById('username').value;
-        const errorMessage = document.getElementById('error-message');
+        const password = document.getElementById('password').value;
         errorMessage.textContent = '';
 
         try {
             const response = await fetch('/api/users/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username })
+                body: JSON.stringify({ username, password })
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                // Save user data and token to localStorage to be used by other pages
-                localStorage.setItem('casinoUser', JSON.stringify(data.user));
-                localStorage.setItem('casinoUserToken', data.token);
-
-                // Redirect to the game selection page
-                window.location.href = 'game-selection.html';
+                sessionStorage.setItem('casinoUser', JSON.stringify(data.user));
+                sessionStorage.setItem('casinoUserToken', data.token);
+                await checkUserStatus();
             } else {
                 throw new Error(data.message || 'Login failed');
             }
         } catch (err) {
             errorMessage.textContent = err.message;
+        }
+    });
+
+    passwordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        passwordErrorMessage.textContent = '';
+
+        if (newPassword !== confirmPassword) {
+            passwordErrorMessage.textContent = 'Passwords do not match.';
+            return;
+        }
+        if (newPassword.length < 8) {
+            passwordErrorMessage.textContent = 'Password must be at least 8 characters.';
+            return;
+        }
+
+        try {
+            await apiRequest('/api/user/update-password', 'POST', { newPassword });
+            passwordModal.classList.add('hidden');
+            await checkUserStatus(); // Re-check status to see if profile needs completion
+        } catch (error) {
+            passwordErrorMessage.textContent = error.message;
+        }
+    });
+
+    profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const firstName = document.getElementById('update-firstname').value;
+        const lastName = document.getElementById('update-lastname').value;
+        const age = parseInt(document.getElementById('update-age').value, 10);
+        profileErrorMessage.textContent = '';
+
+        if (!firstName || !lastName || !age || age <= 0) {
+            profileErrorMessage.textContent = 'Please fill out all fields with valid data.';
+            return;
+        }
+
+        try {
+            await apiRequest('/api/user/update-profile', 'POST', { firstName, lastName, age });
+            profileModal.classList.add('hidden');
+            await checkUserStatus(); // Final check, should now redirect
+        } catch (error) {
+            profileErrorMessage.textContent = error.message;
         }
     });
 </script>

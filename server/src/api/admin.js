@@ -8,7 +8,10 @@ import {
     getUserByUsername,
     recordWithdrawal,
     updatePaytable,
-    updateUserPassword
+    updateUserPassword,
+    setUserBalance,
+    getWithdrawalRequests,
+    updateWithdrawalRequestStatus
 } from '../database/operations.js';
 import { config } from '../config.js';
 
@@ -165,6 +168,49 @@ router.post('/users/:userId/withdrawal', async (req, res) => {
     } catch (error) {
         console.error('Error processing withdrawal:', error);
         res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// --- ADMIN-ONLY BALANCE & WITHDRAWAL MANAGEMENT ---
+
+router.put('/users/:userId/balance', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { newBalance } = req.body;
+        if (newBalance === undefined || typeof newBalance !== 'number' || newBalance < 0) {
+            return res.status(400).json({ message: 'A valid, non-negative new balance is required.' });
+        }
+        const updatedUser = await setUserBalance(userId, newBalance);
+        res.json(updatedUser);
+    } catch (error) {
+        console.error('Error setting user balance:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+router.get('/withdrawal-requests', async (req, res) => {
+    try {
+        const requests = await getWithdrawalRequests();
+        res.json(requests);
+    } catch (error) {
+        console.error('Error fetching withdrawal requests:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+router.put('/withdrawal-requests/:requestId', async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const { status } = req.body; // Expecting 'approved' or 'rejected'
+        if (!['approved', 'rejected'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status. Must be "approved" or "rejected".' });
+        }
+        const adminId = req.user.userId; // The admin performing the action
+        const result = await updateWithdrawalRequestStatus(requestId, adminId, status);
+        res.json(result);
+    } catch (error) {
+        console.error('Error updating withdrawal request:', error);
+        res.status(500).json({ message: 'Internal server error', detail: error.message });
     }
 });
 
