@@ -35,10 +35,5 @@ export let config = {
   }
 };
 
-// This is a hack to allow updating the config in this environment.
-// In a real app, this would be handled by a proper database or config management system.
-export function __UNSAFE_updateGameConfig(gameId, newPaytable) {
-  if (config.games[gameId]) {
-    config.games[gameId].paytable = newPaytable;
-  }
-}
+// The __UNSAFE_updateGameConfig function has been removed.
+// Paytables are now managed in the database.

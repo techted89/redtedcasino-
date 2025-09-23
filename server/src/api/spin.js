@@ -1,11 +1,10 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { getUser, updateUserBalance } from '../database/operations.js'; // Updated path
+import { getUser, updateUserBalance, getPaytable } from '../database/operations.js';
 import { config } from '../config.js';
 
 const router = Router();
 
-// ... (generateSpin and calculateWinnings are unchanged) ...
 const generateSpin = (gameConfig) => {
   const symbolKeys = Object.keys(gameConfig.symbols);
   const reels = [[], [], [], [], []];
@@ -16,17 +15,18 @@ const generateSpin = (gameConfig) => {
   }
   return [reels[0][1], reels[1][1], reels[2][1], reels[3][1], reels[4][1]];
 };
-const calculateWinnings = (spinResult, betAmount, gameConfig) => {
+
+// calculateWinnings is now passed the paytable directly
+const calculateWinnings = (spinResult, betAmount, paytable) => {
     let winnings = 0;
     const line = spinResult;
-    const paytable = gameConfig.paytable;
     for (const symbol in paytable) {
         let count = 0;
         for (let i = 0; i < line.length; i++) {
             if (line[i] === symbol || (line[i] === 'WILD' && symbol !== 'JACKPOT')) {
                 count++;
             } else {
-                break;
+                break; // Stop counting once a non-matching symbol is found
             }
         }
         if (paytable[symbol] && paytable[symbol][count]) {
@@ -37,7 +37,7 @@ const calculateWinnings = (spinResult, betAmount, gameConfig) => {
 };
 
 
-router.post('/spin', async (req, res) => { // Now async
+router.post('/spin', async (req, res) => {
     try {
         const { userId, betAmount, gameId } = req.body;
 
@@ -45,12 +45,16 @@ router.post('/spin', async (req, res) => { // Now async
             return res.status(400).json({ message: 'userId, betAmount, and gameId are required' });
         }
 
+        // Get the static part of the game config (name, symbols, etc.)
         const gameConfig = config.games[gameId];
         if (!gameConfig) {
             return res.status(404).json({ message: 'Game not found' });
         }
 
-        const user = await getUser(userId); // Awaited
+        // --- Fetch the dynamic paytable from the database ---
+        const paytable = await getPaytable(gameId);
+
+        const user = await getUser(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -58,11 +62,12 @@ router.post('/spin', async (req, res) => { // Now async
             return res.status(400).json({ message: 'Insufficient balance' });
         }
 
-        // The database operations are now atomic and sequential
+        // Deduct bet amount
         await updateUserBalance(userId, -betAmount);
 
         const spinResultKeys = generateSpin(gameConfig);
-        const winnings = calculateWinnings(spinResultKeys, betAmount, gameConfig);
+        // Pass the database-fetched paytable to the winnings calculation
+        const winnings = calculateWinnings(spinResultKeys, betAmount, paytable);
 
         let finalBalance = user.balance - betAmount;
 
@@ -81,6 +86,10 @@ router.post('/spin', async (req, res) => { // Now async
 
     } catch (error) {
         console.error('Spin error:', error);
+        // Handle case where paytable is not found in the DB
+        if (error.message.includes('not found in database')) {
+            return res.status(500).json({ message: `Configuration error: ${error.message}` });
+        }
         res.status(500).json({ message: 'Internal server error' });
     }
 });
