@@ -11,7 +11,8 @@ import {
     updateUserPassword,
     setUserBalance,
     getWithdrawalRequests,
-    updateWithdrawalRequestStatus
+    updateWithdrawalRequestStatus,
+    getGameStatistics
 } from '../database/operations.js';
 import { config } from '../config.js';
 
@@ -211,6 +212,18 @@ router.put('/withdrawal-requests/:requestId', async (req, res) => {
     } catch (error) {
         console.error('Error updating withdrawal request:', error);
         res.status(500).json({ message: 'Internal server error', detail: error.message });
+    }
+});
+
+// --- GAME STATISTICS ---
+
+router.get('/statistics', async (req, res) => {
+    try {
+        const stats = await getGameStatistics();
+        res.json(stats);
+    } catch (error) {
+        console.error('Error fetching game statistics:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
 

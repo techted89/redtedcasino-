@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { getUser, updateUserBalance, getPaytable } from '../database/operations.js';
+import { getUser, updateUserBalance, getPaytable, updateGameStatistics } from '../database/operations.js';
 import { config } from '../config.js';
 
 const router = Router();
@@ -77,6 +77,14 @@ router.post('/spin', async (req, res) => {
         }
 
         const spinResultUrls = spinResultKeys.map(key => gameConfig.symbols[key]);
+
+        // --- Update Game Statistics ---
+        // This is done asynchronously and we don't need to wait for it to finish
+        // before responding to the user, so we don't use await.
+        updateGameStatistics(gameId, betAmount, winnings).catch(err => {
+            // Log the error if the statistics update fails for some reason.
+            console.error(`Failed to update statistics for game ${gameId}:`, err);
+        });
 
         res.json({
             reels: spinResultUrls,

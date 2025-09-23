@@ -189,3 +189,24 @@ export async function updateWithdrawalRequestStatus(requestId, adminId, status) 
         connection.release();
     }
 }
+
+// --- Game Statistics Operations ---
+
+export async function updateGameStatistics(gameId, betAmount, winnings) {
+    // This query will insert a new row for the gameId if it doesn't exist,
+    // or update the existing row by adding the new values.
+    await pool.query(
+        `INSERT INTO game_statistics (gameId, totalWagered, totalWon)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+         totalWagered = totalWagered + VALUES(totalWagered),
+         totalWon = totalWon + VALUES(totalWon)`,
+        [gameId, betAmount, winnings]
+    );
+}
+
+export async function getGameStatistics() {
+    // This assumes a `game_statistics` table exists.
+    const [rows] = await pool.query("SELECT * FROM game_statistics ORDER BY gameId");
+    return rows;
+}
