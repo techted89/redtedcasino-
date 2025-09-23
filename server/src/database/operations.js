@@ -113,13 +113,33 @@ export async function getPaytable(gameId) {
     return rows[0].paytable;
 }
 
-export async function updatePaytable(gameId, paytable) {
+export async function getGameConfiguration(gameId) {
+    // This function fetches the complete editable configuration for a game.
+    // Assumes `paytables` table also has a `symbolWeights` JSON column.
+    const [rows] = await pool.query("SELECT paytable, symbolWeights FROM paytables WHERE gameId = ?", [gameId]);
+    if (rows.length === 0) {
+        // Return a default structure if no config is found in the DB yet.
+        return { paytable: {}, symbolWeights: {} };
+    }
+    // The columns can be null if they were added after the row was created.
+    return {
+        paytable: rows[0].paytable || {},
+        symbolWeights: rows[0].symbolWeights || {}
+    };
+}
+
+export async function updatePaytable(gameId, paytable, symbolWeights) {
+    // This uses INSERT ... ON DUPLICATE KEY UPDATE (upsert)
+    // Assumes `gameId` is a unique key or primary key in the `paytables` table.
     const paytableJson = JSON.stringify(paytable);
+    const weightsJson = JSON.stringify(symbolWeights);
     await pool.query(
-        "INSERT INTO paytables (gameId, paytable) VALUES (?, ?) ON DUPLICATE KEY UPDATE paytable = ?",
-        [gameId, paytableJson, paytableJson]
+        `INSERT INTO paytables (gameId, paytable, symbolWeights)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE paytable = ?, symbolWeights = ?`,
+        [gameId, paytableJson, weightsJson, paytableJson, weightsJson]
     );
-    return { message: `Paytable for '${gameId}' updated successfully.` };
+    return { message: `Configuration for '${gameId}' updated successfully.` };
 }
 
 // --- Withdrawal Request Operations ---

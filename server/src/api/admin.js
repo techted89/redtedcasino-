@@ -12,7 +12,8 @@ import {
     setUserBalance,
     getWithdrawalRequests,
     updateWithdrawalRequestStatus,
-    getGameStatistics
+    getGameStatistics,
+    getGameConfiguration
 } from '../database/operations.js';
 import { config } from '../config.js';
 
@@ -89,24 +90,39 @@ router.get('/games', (req, res) => {
     res.json(Object.values(config.games));
 });
 
-// Endpoint to update a game's paytable in the database
+// Endpoint to get the full configuration for a game (paytable and weights)
+router.get('/game-config/:gameId', async (req, res) => {
+    try {
+        const { gameId } = req.params;
+        if (!config.games[gameId]) {
+            return res.status(404).json({ message: 'Game not found in static config' });
+        }
+        const configuration = await getGameConfiguration(gameId);
+        res.json(configuration);
+    } catch (error) {
+        console.error(`Error fetching game configuration for ${req.params.gameId}:`, error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Endpoint to update a game's configuration (paytable and weights) in the database
 router.put('/games/:gameId', async (req, res) => {
     try {
         const { gameId } = req.params;
-        const { paytable } = req.body;
+        const { paytable, symbolWeights } = req.body;
 
         if (!config.games[gameId]) {
             return res.status(404).json({ message: 'Game not found in static config' });
         }
-        if (!paytable) {
-            return res.status(400).json({ message: 'Paytable data is required' });
+        if (!paytable || !symbolWeights) {
+            return res.status(400).json({ message: 'Paytable and symbolWeights data are required' });
         }
 
-        const result = await updatePaytable(gameId, paytable);
+        const result = await updatePaytable(gameId, paytable, symbolWeights);
         res.json({ message: result.message });
 
     } catch (error) {
-        console.error(`Error updating paytable for ${req.params.gameId}:`, error);
+        console.error(`Error updating configuration for ${req.params.gameId}:`, error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });

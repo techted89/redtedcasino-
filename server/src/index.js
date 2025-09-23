@@ -5,8 +5,7 @@ import jwt from 'jsonwebtoken';
 // API Routers
 import spinRouter from './api/spin.js';
 import adminRouter from './api/admin.js';
-import userRouter from './api/user.js'; // Newly added
-
+import userRouter from './api/user.js';
 // Database Operations
 import { getUserByUsername } from './database/operations.js';
 
@@ -80,7 +79,7 @@ app.get('/api/games', (req, res) => {
 // --- API ROUTERS ---
 app.use('/api', spinRouter);
 app.use('/api/admin', adminRouter);
-app.use('/api/user', userRouter); // Newly added router for authenticated users
+app.use('/api/user', userRouter);
 
 // --- Static file serving for the client ---
 // This assumes the client files are in a directory named 'client' at the root

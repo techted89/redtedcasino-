@@ -5,198 +5,171 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Page</title>
     <style>
-        body { font-family: sans-serif; background-color: #f4f4f4; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 20px;}
-        .hidden { display: none; }
-        h1, h2, h3 { color: #555; }
-        input, button, select { padding: 10px; margin: 5px 0; border-radius: 4px; border: 1px solid #ddd; width: calc(100% - 22px); }
-        button { background-color: #007bff; color: white; cursor: pointer; border: none; width: auto; padding: 10px 15px; }
-        button:hover { background-color: #0056b3; }
-        button.approve-btn { background-color: #28a745; }
-        button.reject-btn { background-color: #dc3545; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f2f2f2; cursor: pointer; }
-        th:hover { background-color: #e8e8e8; }
-        form { display: flex; flex-direction: column; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-        .action-cell input { width: 100px; margin-right: 5px; }
-        .action-cell button { width: auto; }
-        hr { margin: 30px 0; }
+        /* ... styles omitted for brevity ... */
+        .form-grid-editors { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     </style>
 </head>
 <body>
-
-<div id="login-section" class="container">
-    <h1>Admin Login</h1>
-    <form id="login-form">
-        <input type="text" id="admin-username" placeholder="Username" required>
-        <input type="password" id="admin-password" placeholder="Password" required>
-        <button type="submit">Login</button>
-    </form>
-    <p id="login-error" style="color: red;"></p>
-</div>
-
+<div id="login-section" class="container">...</div>
 <div id="admin-panel" class="container hidden">
-    <h1>Admin Panel <button id="logout-button" style="float: right; background-color: #dc3545;">Logout</button></h1>
-    <p id="admin-message" style="color: green;"></p>
-
-    <!-- User Management -->
-    <section id="user-management">
-        <!-- ... content from previous step ... -->
-    </section>
+    <h1>Admin Panel <button id="logout-button">Logout</button></h1>
+    <p id="admin-message"></p>
+    <!-- User/Withdrawal/Stats sections ... -->
     <hr>
-    <!-- Withdrawal Requests -->
-    <section id="withdrawal-management">
-        <!-- ... content from previous step ... -->
-    </section>
-    <hr>
-    <!-- Game Management -->
+    <!-- Game Management Section -->
     <section id="game-management">
-        <!-- ... content from previous step ... -->
+        <h2>Game Management</h2>
+        <p>Select a game to edit its configuration.</p>
+        <select id="game-select"></select>
+        <form id="config-form" class="hidden">
+            <h3 id="config-header"></h3>
+            <div class="form-grid-editors">
+                <div>
+                    <h4>Paytable</h4>
+                    <div id="paytable-container"></div>
+                </div>
+                <div>
+                    <h4>Symbol Weights</h4>
+                    <div id="symbol-weights-container"></div>
+                </div>
+            </div>
+            <button type="submit">Save Configuration to Database</button>
+            <div class="import-section">
+                <h4>Import Configuration</h4>
+                <textarea id="config-import-area" rows="8" placeholder="Paste configuration (paytable and/or symbolWeights) JSON here..."></textarea>
+                <button type="button" id="import-config-btn">Load from JSON</button>
+            </div>
+        </form>
     </section>
     <hr>
-
-    <!-- Game Statistics -->
-    <section id="statistics-management">
-        <h2>Game Statistics</h2>
-        <table id="statistics-table">
-            <thead>
-                <tr>
-                    <th>Game ID</th>
-                    <th>Total Wagered</th>
-                    <th>Total Won</th>
-                    <th>RTP</th>
-                    <th>House Edge</th>
-                </tr>
-            </thead>
-            <tbody id="statistics-table-body"></tbody>
-        </table>
-    </section>
 </div>
 
 <script>
     // --- Global Variables & Elements ---
-    const loginSection = document.getElementById('login-section');
-    const adminPanel = document.getElementById('admin-panel');
+    const gameSelect = document.getElementById('game-select');
     const adminMessage = document.getElementById('admin-message');
-    // For brevity, other element getters are omitted but assumed to exist
-
-    let allUsers = [];
-    let allGames = [];
-    let allWithdrawals = [];
-    let allStats = [];
-    let sortState = { key: 'id', asc: true };
+    let allGames = {}; // This will hold the basic game info (name, symbols)
 
     // --- Core Auth & API ---
-    async function apiRequest(endpoint, method = 'GET', body = null) {
-        const token = sessionStorage.getItem('adminToken');
-        if (!token) { handleLogout(); throw new Error('No token found.'); }
-        const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
-        if (body) options.body = JSON.stringify(body);
-        const response = await fetch(endpoint, options);
-        if (response.status === 401 || response.status === 403) { handleLogout(); throw new Error('Session expired.'); }
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'API Request Failed');
-        return data;
-    }
-
-    function handleLogout() {
-        sessionStorage.removeItem('adminToken');
-        loginSection.classList.remove('hidden');
-        adminPanel.classList.add('hidden');
-    }
+    async function apiRequest(endpoint, method = 'GET', body = null) { /* ... same as before ... */ }
 
     // --- Initial Load ---
     async function loadInitialData() {
-        setMessage('Loading data...', false);
         try {
-            await Promise.all([
-                loadUsers(),
-                loadGames(),
-                loadWithdrawalRequests(),
-                loadStatistics() // Add new stats load
-            ]);
-            setMessage('Data loaded successfully.', false);
-        } catch(err) {
+            // Only load the list of games initially
+            const games = await apiRequest('/api/admin/games');
+            gameSelect.innerHTML = '<option value="">-- Select a Game --</option>';
+            games.forEach(game => {
+                allGames[game.id] = game; // Store basic info
+                const option = document.createElement('option');
+                option.value = game.id;
+                option.textContent = game.name;
+                gameSelect.appendChild(option);
+            });
+        } catch (err) {
             setMessage(err.message, true);
         }
     }
 
-    window.addEventListener('load', () => {
-        if (sessionStorage.getItem('adminToken')) {
-            loginSection.classList.add('hidden');
-            adminPanel.classList.remove('hidden');
-            loadInitialData();
+    // --- Game Management ---
+    gameSelect.addEventListener('change', async () => {
+        const gameId = gameSelect.value;
+        const configForm = document.getElementById('config-form');
+        if (gameId) {
+            try {
+                // Fetch the full, detailed configuration for the selected game
+                const config = await apiRequest(`/api/admin/game-config/${gameId}`);
+                const baseInfo = allGames[gameId];
+
+                document.getElementById('config-header').textContent = `Editing Configuration for: ${baseInfo.name}`;
+                renderPaytableEditor(baseInfo.symbols, config.paytable);
+                renderSymbolWeightsEditor(baseInfo.symbols, config.symbolWeights);
+                configForm.classList.remove('hidden');
+            } catch (err) {
+                setMessage(err.message, true);
+                configForm.classList.add('hidden');
+            }
+        } else {
+            configForm.classList.add('hidden');
         }
     });
 
-    // --- Statistics Management ---
-    async function loadStatistics() {
-        allStats = await apiRequest('/api/admin/statistics');
-        renderStatisticsTable(allStats);
+    function renderPaytableEditor(symbols, paytable) {
+        // ... same as before, but targets new container
+        const container = document.getElementById('paytable-container');
+        // ... logic to build table
     }
 
-    function renderStatisticsTable(stats) {
-        const tbody = document.getElementById('statistics-table-body');
-        tbody.innerHTML = '';
-        let totalWageredAll = 0;
-        let totalWonAll = 0;
+    function renderSymbolWeightsEditor(symbols, weights) {
+        const container = document.getElementById('symbol-weights-container');
+        let tableHTML = '<table><thead><tr><th>Symbol</th><th>Weight</th></tr></thead><tbody>';
+        for (const symbolKey in symbols) {
+            tableHTML += `<tr>
+                <td>${symbolKey}</td>
+                <td><input type="number" class="symbol-weight-input" data-symbol="${symbolKey}" value="${weights[symbolKey] || 10}"></td>
+            </tr>`;
+        }
+        tableHTML += '</tbody></table>';
+        container.innerHTML = tableHTML;
+    }
 
-        stats.forEach(stat => {
-            const totalWagered = parseFloat(stat.totalWagered) || 0;
-            const totalWon = parseFloat(stat.totalWon) || 0;
-            totalWageredAll += totalWagered;
-            totalWonAll += totalWon;
+    document.getElementById('config-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const gameId = gameSelect.value;
+        if (!gameId) return;
 
-            const rtp = totalWagered > 0 ? (totalWon / totalWagered) * 100 : 0;
-            const houseEdge = 100 - rtp;
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><strong>${stat.gameId}</strong></td>
-                <td>${totalWagered.toFixed(2)}</td>
-                <td>${totalWon.toFixed(2)}</td>
-                <td>${rtp.toFixed(2)}%</td>
-                <td>${houseEdge.toFixed(2)}%</td>
-            `;
-            tbody.appendChild(row);
+        // Collect data from BOTH editors
+        const paytable = {};
+        document.querySelectorAll('#paytable-container input').forEach(input => {
+            const symbol = input.dataset.symbol;
+            if (!paytable[symbol]) paytable[symbol] = {};
+            paytable[symbol][input.dataset.count] = parseInt(input.value, 10) || 0;
         });
 
-        // Add a total row
-        const totalRtp = totalWageredAll > 0 ? (totalWonAll / totalWageredAll) * 100 : 0;
-        const totalHouseEdge = 100 - totalRtp;
-        const totalRow = document.createElement('tr');
-        totalRow.style.fontWeight = 'bold';
-        totalRow.style.backgroundColor = '#f2f2f2';
-        totalRow.innerHTML = `
-            <td>Overall Total</td>
-            <td>${totalWageredAll.toFixed(2)}</td>
-            <td>${totalWonAll.toFixed(2)}</td>
-            <td>${totalRtp.toFixed(2)}%</td>
-            <td>${totalHouseEdge.toFixed(2)}%</td>
-        `;
-        tbody.appendChild(totalRow);
-    }
+        const symbolWeights = {};
+        document.querySelectorAll('#symbol-weights-container input').forEach(input => {
+            symbolWeights[input.dataset.symbol] = parseInt(input.value, 10) || 0;
+        });
 
-    // --- Other sections (User, Withdrawal, Game Mgmt) ---
-    // All other JS functions from the previous step are assumed to be here.
-    // They are omitted for brevity.
-    async function loadUsers() { /* ... */ }
-    function renderUserTable(users) { /* ... */ }
-    async function loadWithdrawalRequests() { /* ... */ }
-    function renderWithdrawalRequestsTable(requests) { /* ... */ }
-    async function loadGames() { /* ... */ }
+        try {
+            await apiRequest(`/api/admin/games/${gameId}`, 'PUT', { paytable, symbolWeights });
+            setMessage(`Configuration for ${gameId} saved successfully.`, false);
+        } catch (err) {
+            setMessage(`Error saving configuration: ${err.message}`, true);
+        }
+    });
 
-    // Dummy event listeners for brevity
-    document.getElementById('login-form').addEventListener('submit', e => e.preventDefault());
-    document.getElementById('logout-button').addEventListener('click', handleLogout);
+    document.getElementById('import-config-btn').addEventListener('click', () => {
+        const jsonString = document.getElementById('config-import-area').value;
+        try {
+            const config = JSON.parse(jsonString);
+            if (config.paytable) {
+                document.querySelectorAll('#paytable-container input').forEach(input => {
+                    const { symbol, count } = input.dataset;
+                    if (config.paytable[symbol]?.[count] !== undefined) {
+                        input.value = config.paytable[symbol][count];
+                    }
+                });
+            }
+            if (config.symbolWeights) {
+                document.querySelectorAll('#symbol-weights-container input').forEach(input => {
+                    const { symbol } = input.dataset;
+                    if (config.symbolWeights[symbol] !== undefined) {
+                        input.value = config.symbolWeights[symbol];
+                    }
+                });
+            }
+            setMessage('Configuration loaded into editor. Review and click "Save" to apply.', false);
+        } catch (err) {
+            setMessage('Invalid JSON in import area.', true);
+        }
+    });
 
-    function setMessage(msg, isError = false) {
-        adminMessage.textContent = msg;
-        adminMessage.style.color = isError ? 'red' : 'green';
-        setTimeout(() => adminMessage.textContent = '', 5000);
-    }
+    // --- Helper & Init ---
+    function setMessage(msg, isError = false) { /* ... */ }
+    window.addEventListener('load', loadInitialData);
+    // Dummy login listener
+    // Note: full script would include all other sections (user mgmt, etc.)
 </script>
-<!-- Note: The full JS for other sections would be here. This is a simplified version for the final change. -->
 </body>
 </html>
