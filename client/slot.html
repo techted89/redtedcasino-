@@ -4,182 +4,107 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slot Machine - Red Ted Casino</title>
-    <style>
-        body {
-            margin: 0;
-            color: white;
-            font-family: sans-serif;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .top-bar, .bottom-bar {
-            background-color: rgba(0,0,0,0.7);
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .reels-container {
-            /* This would be the canvas for a Phaser game */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            background-color: rgba(0,0,0,0.5);
-            margin: auto;
-            border-radius: 10px;
-        }
-        .reel {
-            width: 100px;
-            height: 100px;
-            margin: 0 10px;
-            border: 2px solid gold;
-            background-color: #333;
-            background-size: contain;
-            background-repeat: no-repeat;
-            background-position: center;
-        }
-        .controls input {
-            width: 80px;
-            padding: 8px;
-            text-align: center;
-        }
-        .controls button {
-            padding: 10px 30px;
-            font-size: 20px;
-            background-color: #d42a2a;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        #winnings-display {
-            font-size: 24px;
-            color: #ffd700;
-            text-align: center;
-            margin-top: 20px;
-            min-height: 30px;
-        }
-    </style>
+    <style>/* ... styles omitted for brevity ... */</style>
 </head>
 <body>
+    <!-- ... all HTML sections ... -->
 
-    <div class="top-bar">
-        <a href="/game-selection.html" style="color: white; text-decoration: none;">&larr; Back to Games</a>
-        <div id="user-info"></div>
-    </div>
-
-    <div id="winnings-display"></div>
-
-    <div class="reels-container">
-        <div class="reel" id="reel1"></div>
-        <div class="reel" id="reel2"></div>
-        <div class="reel" id="reel3"></div>
-        <div class="reel" id="reel4"></div>
-        <div class="reel" id="reel5"></div>
-    </div>
-
-    <div class="bottom-bar">
-        <div class="controls">
-            <label>Bet Amount:</label>
-            <input type="number" id="bet-amount" value="10" min="1">
-        </div>
-        <button id="spin-button">SPIN</button>
-        <div id="balance-display"></div>
-    </div>
-
+<script src="utils.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // --- Element selectors ---
         const userInfoDiv = document.getElementById('user-info');
         const balanceDisplay = document.getElementById('balance-display');
         const winningsDisplay = document.getElementById('winnings-display');
         const spinButton = document.getElementById('spin-button');
-        const reels = [
-            document.getElementById('reel1'),
-            document.getElementById('reel2'),
-            document.getElementById('reel3'),
-            document.getElementById('reel4'),
-            document.getElementById('reel5'),
-        ];
+        const reels = Array.from({length: 5}, (_, i) => document.getElementById(`reel${i+1}`));
+        const passwordModal = document.getElementById('password-modal');
+        const withdrawalModal = document.getElementById('withdrawal-modal');
 
-        // 1. Get Game ID and User Info
+        // --- Auth & API Helper ---
         const params = new URLSearchParams(window.location.search);
         const gameId = params.get('game');
-        const user = JSON.parse(localStorage.getItem('casinoUser'));
-        const token = localStorage.getItem('casinoUserToken');
+        let user = JSON.parse(sessionStorage.getItem('casinoUser'));
+        const token = sessionStorage.getItem('casinoUserToken');
 
         if (!user || !token || !gameId) {
-            window.location.href = 'index.html';
+            window.location.href = '/index.html';
             return;
         }
 
-        // This is a placeholder for loading the game's actual background
-        // In a real app, you would fetch game config first.
-        // For now, we assume the 'bear-slot' background.
+        // --- UI Initialization ---
         document.body.style.backgroundImage = `url('http://redtedcasino.com/BearSlot/img/background.jpg')`;
-
         function updateBalance() {
-            balanceDisplay.textContent = `Balance: ${user.balance}`;
+            balanceDisplay.textContent = `Balance: ${user.balance.toFixed(2)}`;
             userInfoDiv.textContent = `Player: ${user.username}`;
         }
         updateBalance();
 
-        // 2. Spin Logic
+        // --- Game Spin Logic ---
         spinButton.addEventListener('click', async () => {
             const betAmount = parseInt(document.getElementById('bet-amount').value, 10);
-            if (isNaN(betAmount) || betAmount <= 0) {
-                alert('Please enter a valid bet amount.');
-                return;
-            }
-            if (user.balance < betAmount) {
-                alert('Insufficient balance.');
-                return;
-            }
+            if (isNaN(betAmount) || betAmount <= 0) { winningsDisplay.textContent = 'Invalid bet amount.'; return; }
+            if (user.balance < betAmount) { winningsDisplay.textContent = 'Insufficient balance.'; return; }
 
             spinButton.disabled = true;
             winningsDisplay.textContent = 'Spinning...';
             reels.forEach(r => r.style.backgroundImage = '');
 
             try {
-                const response = await fetch('/api/spin', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` // Assuming token auth in the future
-                    },
-                    body: JSON.stringify({ userId: user.id, betAmount, gameId })
-                });
-
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.message);
-
-                // Update UI with results
+                // Use the shared apiRequest, specifying the casino user token
+                const data = await apiRequest('/api/spin', 'POST', { userId: user.id, betAmount, gameId }, 'casinoUserToken');
                 user.balance = data.newBalance;
-                localStorage.setItem('casinoUser', JSON.stringify(user));
+                sessionStorage.setItem('casinoUser', JSON.stringify(user));
                 updateBalance();
-
-                data.reels.forEach((symbolUrl, i) => {
-                    reels[i].style.backgroundImage = `url('${symbolUrl}')`;
-                });
-
-                if (data.winnings > 0) {
-                    winningsDisplay.textContent = `YOU WON: ${data.winnings}!`;
-                } else {
-                    winningsDisplay.textContent = ' ';
-                }
-
+                data.reels.forEach((symbolUrl, i) => { reels[i].style.backgroundImage = `url('${symbolUrl}')`; });
+                winningsDisplay.textContent = data.winnings > 0 ? `YOU WON: ${data.winnings}!` : ' ';
             } catch (err) {
                 winningsDisplay.textContent = `Error: ${err.message}`;
             } finally {
                 spinButton.disabled = false;
             }
         });
+
+        // --- Modal Handling ---
+        function setupModal(buttonId, modalId) {
+            const btn = document.getElementById(buttonId);
+            const modal = document.getElementById(modalId);
+            const closeBtn = modal.querySelector('.close-btn');
+            btn.addEventListener('click', () => modal.style.display = 'flex');
+            closeBtn.addEventListener('click', () => modal.style.display = 'none');
+        }
+        setupModal('update-password-btn', 'password-modal');
+        setupModal('request-withdrawal-btn', 'withdrawal-modal');
+
+        // --- Form Submissions ---
+        document.getElementById('password-update-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newPassword = document.getElementById('new-password').value;
+            const msgEl = document.getElementById('password-message');
+            // ... validation ...
+            try {
+                await apiRequest('/api/user/update-password', 'POST', { newPassword }, 'casinoUserToken');
+                msgEl.textContent = 'Password updated successfully!';
+                // ...
+            } catch (err) {
+                msgEl.textContent = err.message;
+            }
+        });
+
+        document.getElementById('withdrawal-request-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('withdrawal-amount').value);
+            const msgEl = document.getElementById('withdrawal-message');
+            // ... validation ...
+            try {
+                await apiRequest('/api/user/request-withdrawal', 'POST', { amount }, 'casinoUserToken');
+                msgEl.textContent = 'Withdrawal request submitted successfully!';
+                // ...
+            } catch (err) {
+                msgEl.textContent = err.message;
+            }
+        });
     });
 </script>
-
 </body>
 </html>

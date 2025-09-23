@@ -2,12 +2,13 @@
 // It reads sensitive data from environment variables, with fallbacks for local development.
 export let config = {
   db: {
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'your_db_user',
-    password: process.env.DB_PASSWORD || 'your_db_password',
-    database: process.env.DB_NAME || 'redtedcasino'
+    host: process.env.DB_HOST || 'db5018640333.hosting-data.io',
+    user: process.env.DB_USER || 'dbu536762',
+    password: process.env.DB_PASSWORD || 'Dag0D0g0503!',
+    database: process.env.DB_NAME || 'dbs14774816'
   },
   adminPassword: process.env.ADMIN_PASSWORD || 'supersecretpassword',
+  jwtSecret: process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev',
   games: {
     'bear-slot': {
       id: 'bear-slot',
@@ -35,10 +36,5 @@ export let config = {
   }
 };
 
-// This is a hack to allow updating the config in this environment.
-// In a real app, this would be handled by a proper database or config management system.
-export function __UNSAFE_updateGameConfig(gameId, newPaytable) {
-  if (config.games[gameId]) {
-    config.games[gameId].paytable = newPaytable;
-  }
-}
+// The __UNSAFE_updateGameConfig function has been removed.
+// Paytables are now managed in the database.
