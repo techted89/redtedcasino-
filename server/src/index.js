@@ -1,6 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import cors from 'cors';
 
 // API Routers
 import spinRouter from './api/spin.js';
@@ -18,6 +19,14 @@ const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev';
 
 app.use(express.json());
+
+// --- CORS Configuration ---
+// This must be placed before any routes are defined.
+const corsOptions = {
+  origin: 'http://redtedcasino.com',
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+app.use(cors(corsOptions));
 
 // --- USER AUTHENTICATION (now secure) ---
 app.post('/api/users/login', async (req, res) => {

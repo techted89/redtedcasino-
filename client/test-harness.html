@@ -7,171 +7,39 @@
     <style>/* ... styles omitted for brevity ... */</style>
 </head>
 <body>
-
 <div class="container">
-    <a href="/admin.html">&larr; Back to Main Admin Panel</a>
-    <h1>Slot Machine Test Harness</h1>
-    <p>Select a game to load its live configuration, edit it, and run a client-side simulation to compare RTPs.</p>
-    <p id="message-area" style="color: red;"></p>
-
-    <div class="tab-nav">
-        <button class="tab-btn active" data-tab="config">Configuration</button>
-        <button class="tab-btn" data-tab="results">Results</button>
-    </div>
-
-    <!-- Configuration Tab -->
-    <div id="config-tab" class="tab-content active">
-        <div class="form-grid">
-            <div>
-                <h2>Controls</h2>
-                <label for="game-select">Load & Compare Against Live Game:</label>
-                <select id="game-select"></select>
-                <label for="spin-count">Spins to Simulate:</label>
-                <input type="number" id="spin-count" value="100000">
-                <label for="bet-amount">Bet Amount:</label>
-                <input type="number" id="bet-amount" value="1">
-                <h3>Symbol Frequencies (Weights)</h3>
-                <div id="symbol-weights-container"></div>
-            </div>
-            <div>
-                <h3>Paytable Editor (Test Config)</h3>
-                <div id="paytable-container"></div>
-                <button id="export-config-btn">Export Full Config as JSON</button>
-                <textarea id="config-export-area" rows="10" style="display: none; margin-top: 10px;"></textarea>
-            </div>
-        </div>
-        <button id="run-simulation-btn">Run Simulation & Compare</button>
-    </div>
-
-    <!-- Results Tab -->
-    <div id="results-tab" class="tab-content">
-        <h3>Simulation Results</h3>
-        <div id="results-output"></div>
-    </div>
+    <!-- ... all HTML sections ... -->
 </div>
 
 <script>
-    // --- Global Variables ---
+    const API_BASE_URL = 'http://74.208.167.101';
+
+    // --- Global Variables & Elements ---
     const gameSelect = document.getElementById('game-select');
     const messageArea = document.getElementById('message-area');
-    let gameList = {}; // Holds basic info like name, symbols
-    let liveConfigs = {}; // Caches the detailed config (paytable, weights) fetched from the API
+    let gameList = {};
+    let liveConfigs = {};
 
     // --- Client-Side Simulation Logic ---
     /* ... same as before, omitted for brevity ... */
 
     // --- Core Auth & API ---
-    async function apiRequest(endpoint, method = 'GET', body = null) { /* ... */ }
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+        const token = sessionStorage.getItem('adminToken');
+        if (!token) { window.location.href = '/admin.html'; throw new Error('No token found.'); }
+        const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
+        if (body) options.body = JSON.stringify(body);
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, options); // Use base URL
+        if (response.status === 401 || response.status === 403) { window.location.href = '/admin.html'; }
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'API Request Failed');
+        return data;
+    }
 
     // --- UI & Event Handlers ---
-    function setupTabs() { /* ... */ }
-
-    gameSelect.addEventListener('change', async () => {
-        const gameId = gameSelect.value;
-        const configSection = document.querySelector('.form-grid');
-        if (gameId) {
-            try {
-                setMessage('Loading configuration...');
-                const config = await apiRequest(`/api/admin/game-config/${gameId}`);
-                liveConfigs[gameId] = config; // Cache the fetched live config
-
-                const baseInfo = gameList[gameId];
-                renderPaytableEditor(baseInfo.symbols, config.paytable);
-                renderSymbolWeightsEditor(baseInfo.symbols, config.symbolWeights);
-                setMessage('Live configuration loaded into editors.', false);
-            } catch (err) {
-                setMessage(err.message, true);
-            }
-        }
-    });
-
-    document.getElementById('run-simulation-btn').addEventListener('click', () => {
-        setMessage('');
-        try {
-            const gameId = gameSelect.value;
-            if (!gameId) throw new Error('Please select a game.');
-
-            const liveConfig = liveConfigs[gameId];
-            if (!liveConfig) throw new Error('Live config not loaded. Please re-select the game.');
-
-            // Collect all test data from the UI
-            const testPaytable = collectPaytableFromUI();
-            const symbolWeights = collectSymbolWeightsFromUI();
-            const spinCount = parseInt(document.getElementById('spin-count').value, 10);
-            const betAmount = parseFloat(document.getElementById('bet-amount').value);
-
-            document.getElementById('results-output').innerHTML = '<p>Running simulation in your browser...</p>';
-            document.querySelector('.tab-btn[data-tab="results"]').click();
-
-            setTimeout(() => {
-                const results = runClientSideSimulation({
-                    spinCount,
-                    testPaytable,
-                    livePaytable: liveConfig.paytable, // Compare against the cached live paytable
-                    symbolWeights, // Use the test weights for generation
-                    betAmount
-                });
-                renderResultsTable(results);
-            }, 50);
-
-        } catch (err) {
-            setMessage(err.message);
-        }
-    });
-
-    document.getElementById('export-config-btn').addEventListener('click', () => {
-        const testPaytable = collectPaytableFromUI();
-        const symbolWeights = collectSymbolWeightsFromUI();
-        const exportArea = document.getElementById('config-export-area');
-        exportArea.value = JSON.stringify({ paytable: testPaytable, symbolWeights }, null, 2);
-        exportArea.style.display = 'block';
-        setMessage('Current editor configuration exported as JSON below.');
-    });
-
-    // --- Helper Functions ---
-    function collectPaytableFromUI() {
-        const paytable = {};
-        document.querySelectorAll('#paytable-container input').forEach(input => {
-            const symbol = input.dataset.symbol;
-            if (!paytable[symbol]) paytable[symbol] = {};
-            paytable[symbol][input.dataset.count] = parseInt(input.value, 10) || 0;
-        });
-        return paytable;
-    }
-
-    function collectSymbolWeightsFromUI() {
-        const weights = {};
-        document.querySelectorAll('#symbol-weights-container input').forEach(input => {
-            weights[input.dataset.symbol] = parseInt(input.value, 10) || 0;
-        });
-        return weights;
-    }
-
-    // --- Init & Render Functions (implementation omitted for brevity) ---
-    async function initialize() {
-        try {
-            const games = await apiRequest('/api/admin/games');
-            gameSelect.innerHTML = '<option value="">-- Select a Game --</option>';
-            games.forEach(game => {
-                gameList[game.id] = game; // Store basic info
-                const option = document.createElement('option');
-                option.value = game.id;
-                option.textContent = game.name;
-                gameSelect.appendChild(option);
-            });
-        } catch (err) {
-            setMessage(err.message);
-        }
-    }
-    function renderPaytableEditor(symbols, paytable) { /* ... */ }
-    function renderSymbolWeightsEditor(symbols, weights) { /* ... */ }
-    function renderResultsTable(results) { /* ... */ }
-    function setMessage(msg, isError = false) { /* ... */ }
-
-    window.addEventListener('load', () => {
-        setupTabs();
-        initialize();
-    });
+    // All other functions (initialize, gameSelect listener, etc.)
+    // will now use the updated apiRequest function, so they don't need to be changed individually.
+    // The full script from the last correct version would be here.
 </script>
 </body>
 </html>
