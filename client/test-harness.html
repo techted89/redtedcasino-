@@ -11,9 +11,8 @@
     <!-- ... all HTML sections ... -->
 </div>
 
+<script src="utils.js"></script>
 <script>
-    const API_BASE_URL = 'http://74.208.167.101';
-
     // --- Global Variables & Elements ---
     const gameSelect = document.getElementById('game-select');
     const messageArea = document.getElementById('message-area');
@@ -24,17 +23,7 @@
     /* ... same as before, omitted for brevity ... */
 
     // --- Core Auth & API ---
-    async function apiRequest(endpoint, method = 'GET', body = null) {
-        const token = sessionStorage.getItem('adminToken');
-        if (!token) { window.location.href = '/admin.html'; throw new Error('No token found.'); }
-        const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
-        if (body) options.body = JSON.stringify(body);
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, options); // Use base URL
-        if (response.status === 401 || response.status === 403) { window.location.href = '/admin.html'; }
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'API Request Failed');
-        return data;
-    }
+    // The apiRequest function is now in utils.js and defaults to 'adminToken'
 
     // --- UI & Event Handlers ---
     // All other functions (initialize, gameSelect listener, etc.)

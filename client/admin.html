@@ -12,9 +12,8 @@
     <!-- ... all HTML sections ... -->
 </div>
 
+<script src="utils.js"></script>
 <script>
-    const API_BASE_URL = 'http://74.208.167.101';
-
     // --- Global Variables & Elements ---
     const loginSection = document.getElementById('login-section');
     const adminPanel = document.getElementById('admin-panel');
@@ -27,17 +26,8 @@
     let sortState = { key: 'id', asc: true };
 
     // --- Core Auth & API ---
-    async function apiRequest(endpoint, method = 'GET', body = null) {
-        const token = sessionStorage.getItem('adminToken');
-        if (!token) { handleLogout(); throw new Error('No token found.'); }
-        const options = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
-        if (body) options.body = JSON.stringify(body);
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, options); // Use base URL
-        if (response.status === 401 || response.status === 403) { handleLogout(); throw new Error('Session expired.'); }
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.message || 'API Request Failed');
-        return data;
-    }
+    // The apiRequest function is now in utils.js
+
     function handleLogout() { /* ... */ }
 
     // --- Initial Load ---

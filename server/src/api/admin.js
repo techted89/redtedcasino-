@@ -16,16 +16,23 @@ import {
     getGameConfiguration
 } from '../database/operations.js';
 import { config } from '../config.js';
+import { checkAuth } from '../middleware/auth.js';
+import { rateLimit } from 'express-rate-limit';
 
 const router = Router();
 
-// In a real production app, this secret should be a long, complex, and securely stored environment variable.
-const JWT_SECRET = process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev';
-
 // --- AUTHENTICATION ---
 
+const loginLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, // 15 minutes
+	limit: 10, // Limit each IP to 10 login requests per `window` (here, per 15 minutes).
+	standardHeaders: 'draft-7',
+	legacyHeaders: false,
+    message: 'Too many login attempts from this IP, please try again after 15 minutes'
+});
+
 // Admin login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
         if (!username || !password) {
@@ -47,7 +54,7 @@ router.post('/login', async (req, res) => {
         // Generate JWT
         const token = jwt.sign(
             { userId: user.id, username: user.username, isAdmin: user.isAdmin },
-            JWT_SECRET,
+            config.jwtSecret, // Using a centralized secret
             { expiresIn: '1h' } // Token expires in 1 hour
         );
 
@@ -62,27 +69,8 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Middleware to check for a valid JWT
-const checkAuth = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Expecting "Bearer <token>"
-
-    if (!token) {
-        return res.status(401).json({ message: 'Unauthorized: Token is missing' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ message: 'Forbidden: Token is invalid or expired' });
-        }
-        // Attach the decoded user payload to the request object
-        req.user = user;
-        next();
-    });
-};
-
-// All routes below this point are protected
-router.use(checkAuth);
+// All routes below this point are protected by the new, shared admin auth middleware.
+router.use(checkAuth(true));
 
 // --- GAME MANAGEMENT ---
 router.get('/games', (req, res) => {

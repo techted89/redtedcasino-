@@ -8,6 +8,7 @@ export let config = {
     database: process.env.DB_NAME || 'dbs14774816'
   },
   adminPassword: process.env.ADMIN_PASSWORD || 'supersecretpassword',
+  jwtSecret: process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev',
   games: {
     'bear-slot': {
       id: 'bear-slot',

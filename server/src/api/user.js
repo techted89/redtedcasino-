@@ -1,39 +1,17 @@
 import { Router } from 'express';
-import jwt from 'jsonwebtoken';
 import {
     forcePasswordChange,
     updateUserProfile,
     createWithdrawalRequest,
     getUserStatus
 } from '../database/operations.js';
+import { checkAuth } from '../middleware/auth.js';
 
 const router = Router();
 
-// In a real production app, this secret should be a long, complex, and securely stored environment variable.
-const JWT_SECRET = process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev';
-
-// Middleware to check for a valid user JWT.
-// This is similar to the admin one but doesn't require isAdmin to be true.
-const checkUserAuth = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Expecting "Bearer <token>"
-
-    if (!token) {
-        return res.status(401).json({ message: 'Unauthorized: Token is missing' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ message: 'Forbidden: Token is invalid or expired' });
-        }
-        // Attach the decoded user payload to the request object
-        req.user = user;
-        next();
-    });
-};
-
 // All routes in this file are for authenticated users.
-router.use(checkUserAuth);
+// We use the shared middleware, configured to not require admin privileges.
+router.use(checkAuth());
 
 // --- USER STATUS & ONBOARDING ---
 

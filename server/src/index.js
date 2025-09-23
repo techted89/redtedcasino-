@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
+import { rateLimit } from 'express-rate-limit';
 
 // API Routers
 import spinRouter from './api/spin.js';
@@ -15,9 +16,7 @@ import { config } from './config.js';
 
 const app = express();
 
-// In a real production app, this secret should be a long, complex, and securely stored environment variable.
-const JWT_SECRET = process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev';
-
+// Use the centralized secret from the config file.
 app.use(express.json());
 
 // --- CORS Configuration ---
@@ -29,7 +28,15 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // --- USER AUTHENTICATION (now secure) ---
-app.post('/api/users/login', async (req, res) => {
+
+const loginLimiter = rateLimit({
+	windowMs: 60 * 60 * 1000, // 1 hour
+	limit: 20, // Limit each IP to 20 login requests per `window` (here, per hour).
+	standardHeaders: 'draft-7',
+	legacyHeaders: false,
+});
+
+app.post('/api/users/login', loginLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
         if (!username || !password) {
@@ -56,7 +63,7 @@ app.post('/api/users/login', async (req, res) => {
         // Generate JWT for the regular user
         const token = jwt.sign(
             { userId: user.id, username: user.username, isAdmin: user.isAdmin },
-            JWT_SECRET,
+            config.jwtSecret,
             { expiresIn: '8h' } // Longer expiration for regular users
         );
 

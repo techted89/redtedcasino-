@@ -34,8 +34,10 @@ Ensure your VPS has the following software installed:
     ```bash
     mysql -u root -p
     ```
-2.  Create a new database and a dedicated user for the application. **Replace `'your_strong_password'` with a secure password.**
+2.  Create a new database and a dedicated user for the application. Use a strong, unique password for your database user.
     ```sql
+    -- Example SQL for creating the database and user.
+    -- Replace 'your_strong_password' with your actual password.
     CREATE DATABASE dbs14774816;
     CREATE USER 'dbu536762'@'localhost' IDENTIFIED BY 'your_strong_password';
     GRANT ALL PRIVILEGES ON dbs14774816.* TO 'dbu536762'@'localhost';
@@ -44,28 +46,26 @@ Ensure your VPS has the following software installed:
     ```
 3.  Run the `schema.sql` script to create all the necessary tables.
     ```bash
-    # Navigate to the server directory on your VPS
-    cd /var/www/redted-casino-server
-    # Run the script
+    # From within the server directory (/var/www/redted-casino-server)
     mysql -u dbu536762 -p dbs14774816 < database/schema.sql
     ```
 
 ### 4. Application Configuration
 
-1.  In the server directory (`/var/www/redted-casino-server`), create a file named `.env`. This file will hold your environment variables.
-2.  Add the following content to the `.env` file, replacing the placeholder values with your actual database credentials and a long, random string for your JWT secret.
+1.  In the server directory (`/var/www/redted-casino-server`), create a file named `.env`.
+2.  Add the following content to the `.env` file. Fill in the `DB_PASSWORD` with the password you created above, and generate a long, random, and secret string for the `JWT_SECRET`.
     ```
     # Database Configuration
     DB_HOST=localhost
     DB_USER=dbu536762
-    DB_PASSWORD=your_strong_password
+    DB_PASSWORD=...your_database_password_here...
     DB_NAME=dbs14774816
 
     # Application Security
-    JWT_SECRET=your_super_long_and_secret_jwt_string_here
+    JWT_SECRET=...your_super_long_and_secret_jwt_string_here...
     ```
 
-### 5. Install Dependencies & Run
+### 5. Install Dependencies & Create Admin User
 
 1.  Navigate to the server directory.
     ```bash
@@ -75,7 +75,15 @@ Ensure your VPS has the following software installed:
     ```bash
     npm install
     ```
-3.  Start the application using the `pm2` process manager. This will ensure the server runs in the background and restarts automatically if it crashes.
+3.  **Create the Initial Admin User.** Run the following command. Replace the bracketed values with your desired admin credentials.
+    ```bash
+    # Usage: npm run create-admin -- <username> <password> <firstName> <lastName> <age>
+    npm run create-admin -- admin your_secure_password Admin User 99
+    ```
+
+### 6. Run the Application
+
+1.  Start the application using the `pm2` process manager. This will ensure the server runs in the background and restarts automatically if it crashes.
     ```bash
     pm2 start src/server.js --name "redted-api"
     ```
@@ -132,7 +140,8 @@ The file structure on your web host should look like this:
 ├── game-selection.html
 ├── index.html
 ├── slot.html
-└── test-harness.html
+├── test-harness.html
+└── utils.js
 ```
 
 ### 2. Configuration
