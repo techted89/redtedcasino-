@@ -7,9 +7,21 @@ const SALT_ROUNDS = 10;
 
 const USER_COLUMNS = 'id, username, balance, firstName, lastName, age, withdrawalTotal, isAdmin, createdAt, accountId, passwordChanged, profileCompleted';
 
-export async function getAllUsers() {
-    const [rows] = await pool.query(`SELECT ${USER_COLUMNS} FROM users`);
-    return rows;
+export async function getAllUsers(page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+
+    const [[{ total }]] = await pool.query("SELECT COUNT(*) as total FROM users");
+
+    const [rows] = await pool.query(
+        `SELECT ${USER_COLUMNS} FROM users ORDER BY id ASC LIMIT ? OFFSET ?`,
+        [limit, offset]
+    );
+
+    return {
+        data: rows,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page
+    };
 }
 
 export async function getUser(userId) {
@@ -153,15 +165,24 @@ export async function createWithdrawalRequest(userId, amount) {
     return { message: 'Withdrawal request submitted successfully.' };
 }
 
-export async function getWithdrawalRequests() {
-    // Join with users table to get username
+export async function getWithdrawalRequests(page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+
+    const [[{ total }]] = await pool.query("SELECT COUNT(*) as total FROM withdrawal_requests");
+
     const [rows] = await pool.query(`
         SELECT w.*, u.username
         FROM withdrawal_requests w
         JOIN users u ON w.userId = u.id
         ORDER BY w.requestedAt DESC
-    `);
-    return rows;
+        LIMIT ? OFFSET ?
+    `, [limit, offset]);
+
+    return {
+        data: rows,
+        totalPages: Math.ceil(total / limit),
+        currentPage: page
+    };
 }
 
 export async function updateWithdrawalRequestStatus(requestId, adminId, status) {

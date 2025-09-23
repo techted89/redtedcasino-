@@ -96,9 +96,9 @@ router.post('/spin', async (req, res) => {
         console.error('Spin error:', error);
         // Handle case where paytable is not found in the DB
         if (error.message.includes('not found in database')) {
-            return res.status(500).json({ message: `Configuration error: ${error.message}` });
+            return res.status(500).json({ message: `Configuration error for this game. Please contact an admin.` });
         }
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 

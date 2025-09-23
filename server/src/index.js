@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
+import helmet from 'helmet';
 
 // API Routers
 import spinRouter from './api/spin.js';
@@ -17,6 +18,7 @@ import { config } from './config.js';
 const app = express();
 
 // Use the centralized secret from the config file.
+app.use(helmet());
 app.use(express.json());
 
 // --- CORS Configuration ---
@@ -78,7 +80,7 @@ app.post('/api/users/login', loginLimiter, async (req, res) => {
 
     } catch (error) {
         console.error('User login error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 

@@ -25,7 +25,7 @@ router.get('/status', async (req, res) => {
         res.json(status);
     } catch (error) {
         console.error('Error fetching user status:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -40,7 +40,7 @@ router.post('/update-password', async (req, res) => {
         res.json(result);
     } catch (error) {
         console.error('Error updating password:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -55,7 +55,7 @@ router.post('/update-profile', async (req, res) => {
         res.json(updatedUser);
     } catch (error) {
         console.error('Error updating profile:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -73,7 +73,7 @@ router.post('/request-withdrawal', async (req, res) => {
         res.json(result);
     } catch (error) {
         console.error('Error creating withdrawal request:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 

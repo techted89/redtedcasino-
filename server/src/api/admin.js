@@ -64,8 +64,8 @@ router.post('/login', loginLimiter, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error('Login error:', error); // Keep detailed log on server
+        res.status(500).json({ message: 'An internal server error occurred.' }); // Generic message to client
     }
 });
 
@@ -89,7 +89,7 @@ router.get('/game-config/:gameId', async (req, res) => {
         res.json(configuration);
     } catch (error) {
         console.error(`Error fetching game configuration for ${req.params.gameId}:`, error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -111,7 +111,7 @@ router.put('/games/:gameId', async (req, res) => {
 
     } catch (error) {
         console.error(`Error updating configuration for ${req.params.gameId}:`, error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -120,11 +120,13 @@ router.put('/games/:gameId', async (req, res) => {
 
 router.get('/users', async (req, res) => {
     try {
-        const users = await getAllUsers();
-        res.json(users);
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const result = await getAllUsers(page, limit);
+        res.json(result);
     } catch (error) {
         console.error('Error fetching users:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -146,7 +148,7 @@ router.post('/users/create', async (req, res) => {
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ message: 'Username already exists.' });
         }
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -172,7 +174,7 @@ router.post('/users/:userId/withdrawal', async (req, res) => {
 
     } catch (error) {
         console.error('Error processing withdrawal:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -189,17 +191,19 @@ router.put('/users/:userId/balance', async (req, res) => {
         res.json(updatedUser);
     } catch (error) {
         console.error('Error setting user balance:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
 router.get('/withdrawal-requests', async (req, res) => {
     try {
-        const requests = await getWithdrawalRequests();
-        res.json(requests);
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const result = await getWithdrawalRequests(page, limit);
+        res.json(result);
     } catch (error) {
         console.error('Error fetching withdrawal requests:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -215,7 +219,8 @@ router.put('/withdrawal-requests/:requestId', async (req, res) => {
         res.json(result);
     } catch (error) {
         console.error('Error updating withdrawal request:', error);
-        res.status(500).json({ message: 'Internal server error', detail: error.message });
+        // Don't leak detailed error messages to the client
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 
@@ -227,7 +232,7 @@ router.get('/statistics', async (req, res) => {
         res.json(stats);
     } catch (error) {
         console.error('Error fetching game statistics:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
 

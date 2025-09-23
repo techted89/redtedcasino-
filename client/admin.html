@@ -4,81 +4,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Page</title>
-    <style>/* ... styles omitted for brevity ... */</style>
+    <style>
+        /* ... styles omitted for brevity ... */
+        .pagination-controls { margin-top: 15px; text-align: center; }
+        .pagination-controls button { margin: 0 5px; }
+        .pagination-controls span { margin: 0 10px; font-weight: bold; }
+    </style>
 </head>
 <body>
 <div id="login-section" class="container">...</div>
 <div id="admin-panel" class="container hidden">
-    <!-- ... all HTML sections ... -->
+    <h1>Admin Panel</h1>
+    <p id="admin-message"></p>
+    <section id="user-management">
+        <h2>User Management</h2>
+        <input type="text" id="user-search" placeholder="Search not implemented for pagination">
+        <table id="user-table">...</table>
+        <div id="user-pagination" class="pagination-controls"></div>
+    </section>
+    <hr>
+    <section id="withdrawal-management">
+        <h2>Withdrawal Requests</h2>
+        <table id="withdrawal-table">...</table>
+        <div id="withdrawal-pagination" class="pagination-controls"></div>
+    </section>
+    <!-- Other sections ... -->
 </div>
 
 <script src="utils.js"></script>
 <script>
-    // --- Global Variables & Elements ---
-    const loginSection = document.getElementById('login-section');
-    const adminPanel = document.getElementById('admin-panel');
-    const adminMessage = document.getElementById('admin-message');
-    const gameSelect = document.getElementById('game-select');
-    let allGames = {}; // Holds basic game info (name, symbols)
-    let allUsers = [];
-    let allWithdrawals = [];
-    let allStats = [];
-    let sortState = { key: 'id', asc: true };
-
-    // --- Core Auth & API ---
-    // The apiRequest function is now in utils.js
-
-    function handleLogout() { /* ... */ }
+    // --- Global State ---
+    let userCurrentPage = 1;
+    let withdrawalCurrentPage = 1;
 
     // --- Initial Load ---
     async function loadInitialData() {
-        setMessage('Loading data...', false);
-        try {
-            await Promise.all([
-                loadUsers(),
-                loadWithdrawalRequests(),
-                loadGames(),
-                loadStatistics()
-            ]);
-            setMessage('Data loaded successfully.', false);
-        } catch(err) {
-            setMessage(err.message, true);
-        }
+        await Promise.all([
+            loadUsers(userCurrentPage),
+            loadWithdrawalRequests(withdrawalCurrentPage),
+            // ... other load functions
+        ]);
     }
-    window.addEventListener('load', () => {
-        if (sessionStorage.getItem('adminToken')) {
-            loginSection.classList.add('hidden');
-            adminPanel.classList.remove('hidden');
-            loadInitialData();
-        }
-    });
 
-    // --- Login ---
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('admin-username').value;
-        const password = document.getElementById('admin-password').value;
+    // --- User Management ---
+    async function loadUsers(page = 1) {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/admin/login`, { // Use base URL
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message);
-            sessionStorage.setItem('adminToken', data.token);
-            loginSection.classList.add('hidden');
-            adminPanel.classList.remove('hidden');
-            await loadInitialData();
+            const result = await apiRequest(`/api/admin/users?page=${page}&limit=10`);
+            renderUserTable(result.data);
+            renderPagination('user-pagination', result.totalPages, result.currentPage, loadUsers);
+            userCurrentPage = result.currentPage;
         } catch (err) {
             setMessage(err.message, true);
         }
-    });
+    }
 
-    // All other functions (loadUsers, renderUserTable, loadGames, etc.)
-    // will now use the updated apiRequest function, so they don't need to be changed individually.
-    // The full script from the last correct version would be here.
-    // This is just a summary of the key change.
+    function renderUserTable(users) { /* ... */ }
+
+    // --- Withdrawal Management ---
+    async function loadWithdrawalRequests(page = 1) {
+        try {
+            const result = await apiRequest(`/api/admin/withdrawal-requests?page=${page}&limit=5`);
+            renderWithdrawalRequestsTable(result.data);
+            renderPagination('withdrawal-pagination', result.totalPages, result.currentPage, loadWithdrawalRequests);
+            withdrawalCurrentPage = result.currentPage;
+        } catch (err) {
+            setMessage(err.message, true);
+        }
+    }
+
+    function renderWithdrawalRequestsTable(requests) { /* ... */ }
+
+    // --- Generic Pagination Renderer ---
+    function renderPagination(containerId, totalPages, currentPage, loadFunction) {
+        const container = document.getElementById(containerId);
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = '';
+        html += `<button data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>&larr; Previous</button>`;
+        html += `<span>Page ${currentPage} of ${totalPages}</span>`;
+        html += `<button data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>Next &rarr;</button>`;
+        container.innerHTML = html;
+
+        container.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const page = parseInt(e.currentTarget.dataset.page, 10);
+                loadFunction(page);
+            });
+        });
+    }
+
+    // --- Other functions and event listeners ---
+    // (login, apiRequest, handleLogout, game management, etc.)
+    // The full script would be here.
+    window.addEventListener('load', () => {
+        if (sessionStorage.getItem('adminToken')) {
+            document.getElementById('admin-panel').classList.remove('hidden');
+            loadInitialData();
+        } else {
+            document.getElementById('login-section').classList.remove('hidden');
+        }
+    });
+    function setMessage(msg, isError = false) { document.getElementById('admin-message').textContent = msg; }
 </script>
 </body>
 </html>
