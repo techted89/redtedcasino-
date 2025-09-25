@@ -25,17 +25,17 @@
     value: ${{ steps.unzip.outputs.ZIP_FILENAME }}
 
   runs:
-      using: "composite" # Or "node16" for JavaScript action, or "docker" for Docker action
-      steps:
+    using: "composite" # Or "node16" for JavaScript action, or "docker" for Docker action
+    steps:
       - name: Ensure zip file exists
-      shell: bash
-      run: |
-        if [ ! -f "${{ inputs.zip_file_path }}" ]; then
+        shell: bash
+        run: |
+          if [ ! -f "${{ inputs.zip_file_path }}" ]; then
           echo "Error: Zip file '${{ inputs.zip_file_path }}' not found!"
           exit 1
-        fi
+          fi
 
-      - name: Clean up existing directories
+       - name: Clean up existing directories
          if: inputs.target_directories_to_clean != ''
          shell: bash
          run: |
@@ -45,8 +45,8 @@
           rm -rf "$dir" || true # Use || true to prevent failure if dir doesn't exist
         done
 
-    - name: Unzip the file
-      id: unzip
+        - name: Unzip the file
+            id: unzip
       shell: bash
       run: |
         unzip -o "${{ inputs.zip_file_path }}" -d extracted_content
