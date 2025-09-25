@@ -1,19 +1,43 @@
 import { Router } from 'express';
 import crypto from 'crypto';
-import { getUser, updateUserBalance, getPaytable, updateGameStatistics } from '../database/operations.js';
+import { getUser, updateUserBalance, getGameConfiguration, updateGameStatistics } from '../database/operations.js';
 import { config } from '../config.js';
 
 const router = Router();
 
-const generateSpin = (gameConfig) => {
-  const symbolKeys = Object.keys(gameConfig.symbols);
-  const reels = [[], [], [], [], []];
-  for (let i = 0; i < 5; i++) {
-    for (let j = 0; j < 3; j++) {
-      reels[i][j] = symbolKeys[crypto.randomInt(symbolKeys.length)];
+const generateWeightedSpin = (gameConfig, symbolWeights) => {
+    const weightedSymbols = [];
+    // The Object.keys check handles cases where symbolWeights might be null, undefined, or an empty object
+    if (symbolWeights && Object.keys(symbolWeights).length > 0) {
+        for (const symbol in symbolWeights) {
+            // Ensure the symbol exists in the main game config to prevent mismatches
+            if (gameConfig.symbols[symbol]) {
+                const weight = symbolWeights[symbol];
+                for (let i = 0; i < weight; i++) {
+                    weightedSymbols.push(symbol);
+                }
+            } else {
+                // Log a warning for the administrator if a weight is defined for a non-existent symbol
+                console.error(`Configuration Error: The symbol '${symbol}' has a weight defined but does not exist in the gameConfig.symbols for this game.`);
+            }
+        }
     }
-  }
-  return [reels[0][1], reels[1][1], reels[2][1], reels[3][1], reels[4][1]];
+
+    // Fallback to unweighted spin if the weighted array is empty
+    // This handles misconfigurations where weights are defined but are all zero, or symbols don't match.
+    if (weightedSymbols.length === 0) {
+        console.warn(`Warning: No valid symbol weights found for game. Falling back to unweighted spin.`);
+        const symbolKeys = Object.keys(gameConfig.symbols);
+        return Array.from({ length: 5 }, () => symbolKeys[crypto.randomInt(symbolKeys.length)]);
+    }
+
+    // Generate the 5-reel spin result from the weighted array
+    const spinResult = [];
+    for (let i = 0; i < 5; i++) {
+        const randomIndex = crypto.randomInt(weightedSymbols.length);
+        spinResult.push(weightedSymbols[randomIndex]);
+    }
+    return spinResult;
 };
 
 // calculateWinnings is now passed the paytable directly
@@ -51,8 +75,8 @@ router.post('/spin', async (req, res) => {
             return res.status(404).json({ message: 'Game not found' });
         }
 
-        // --- Fetch the dynamic paytable from the database ---
-        const paytable = await getPaytable(gameId);
+        // --- Fetch the dynamic game configuration from the database ---
+        const { paytable, symbolWeights } = await getGameConfiguration(gameId);
 
         const user = await getUser(userId);
         if (!user) {
@@ -65,7 +89,7 @@ router.post('/spin', async (req, res) => {
         // Deduct bet amount
         await updateUserBalance(userId, -betAmount);
 
-        const spinResultKeys = generateSpin(gameConfig);
+        const spinResultKeys = generateWeightedSpin(gameConfig, symbolWeights);
         // Pass the database-fetched paytable to the winnings calculation
         const winnings = calculateWinnings(spinResultKeys, betAmount, paytable);
 

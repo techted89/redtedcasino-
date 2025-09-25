@@ -115,15 +115,7 @@ export async function recordWithdrawal(userId, amount) {
     return getUser(userId);
 }
 
-// --- Game Paytable Operations ---
-
-export async function getPaytable(gameId) {
-    const [rows] = await pool.query("SELECT paytable FROM paytables WHERE gameId = ?", [gameId]);
-    if (rows.length === 0) {
-        throw new Error(`Paytable for game '${gameId}' not found in database.`);
-    }
-    return rows[0].paytable;
-}
+// --- Game Configuration Operations ---
 
 export async function getGameConfiguration(gameId) {
     // This function fetches the complete editable configuration for a game.
