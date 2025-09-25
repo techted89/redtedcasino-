@@ -5,10 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Slot Machine - Red Ted Casino</title>
     <style>/* ... styles omitted for brevity ... */</style>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 </head>
 <body>
-    <!-- ... all HTML sections ... -->
+    <div id="phaser-game"></div>
+
+    <div id="password-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Update Password</h2>
+            <form id="password-update-form">
+                <input type="password" id="new-password" placeholder="New Password" required>
+                <button type="submit">Update</button>
+                <p id="password-message"></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="withdrawal-modal" class="modal-backdrop hidden">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>Request Withdrawal</h2>
+            <form id="withdrawal-request-form">
+                <input type="number" id="withdrawal-amount" placeholder="Amount" required>
+                <button type="submit">Submit</button>
+                <p id="withdrawal-message"></p>
+            </form>
+        </div>
+    </div>
 
 <script src="app.js"></script>
+<script src="phaser-game.js"></script>
 </body>
 </html>

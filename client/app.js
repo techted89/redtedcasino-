@@ -213,27 +213,24 @@ if (document.getElementById('admin-panel')) {
 
 // --- Game Selection Page Logic ---
 if (document.getElementById('game-list')) {
-    document.addEventListener('DOMContentLoaded', () => {
-        const userInfoDiv = document.getElementById('user-info');
-        const gameListDiv = document.getElementById('game-list');
-        const logoutButton = document.getElementById('logout-button');
+    const userInfoDiv = document.getElementById('user-info');
+    const gameListDiv = document.getElementById('game-list');
+    const logoutButton = document.getElementById('logout-button');
 
-        // 1. Check for user login
-        const user = JSON.parse(localStorage.getItem('casinoUser'));
-        const token = localStorage.getItem('casinoUserToken');
+    // 1. Check for user login
+    const user = JSON.parse(sessionStorage.getItem('casinoUser'));
+    const token = sessionStorage.getItem('casinoUserToken');
 
-        if (!user || !token) {
-            window.location.href = 'index.html'; // Redirect to login if not logged in
-            return;
-        }
-
+    if (!user || !token) {
+        window.location.href = 'index.html'; // Redirect to login if not logged in
+    } else {
         // 2. Display user info
         userInfoDiv.textContent = `Welcome, ${user.username}! Balance: ${user.balance}`;
 
         // 3. Logout functionality
         logoutButton.addEventListener('click', () => {
-            localStorage.removeItem('casinoUser');
-            localStorage.removeItem('casinoUserToken');
+            sessionStorage.removeItem('casinoUser');
+            sessionStorage.removeItem('casinoUserToken');
             window.location.href = 'index.html';
         });
 
@@ -265,103 +262,42 @@ if (document.getElementById('game-list')) {
         }
 
         loadGames();
-    });
+    }
 }
 
 // --- Slot Machine Page Logic ---
-if (document.getElementById('spin-button')) {
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- Element selectors ---
-        const userInfoDiv = document.getElementById('user-info');
-        const balanceDisplay = document.getElementById('balance-display');
-        const winningsDisplay = document.getElementById('winnings-display');
-        const spinButton = document.getElementById('spin-button');
-        const reels = Array.from({length: 5}, (_, i) => document.getElementById(`reel${i+1}`));
-        const passwordModal = document.getElementById('password-modal');
-        const withdrawalModal = document.getElementById('withdrawal-modal');
+if (document.getElementById('phaser-game')) {
+    // Modal Handling
+    function setupModal(modalId) {
+        const modal = document.getElementById(modalId);
+        const closeBtn = modal.querySelector('.close-btn');
+        closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+    }
+    setupModal('password-modal');
+    setupModal('withdrawal-modal');
 
-        // --- Auth & API Helper ---
-        const params = new URLSearchParams(window.location.search);
-        const gameId = params.get('game');
-        let user = JSON.parse(sessionStorage.getItem('casinoUser'));
-        const token = sessionStorage.getItem('casinoUserToken');
-
-        if (!user || !token || !gameId) {
-            window.location.href = '/index.html';
-            return;
+    // Form Submissions
+    document.getElementById('password-update-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPassword = document.getElementById('new-password').value;
+        const msgEl = document.getElementById('password-message');
+        try {
+            await apiRequest('/api/user/update-password', 'POST', { newPassword }, 'casinoUserToken');
+            msgEl.textContent = 'Password updated successfully!';
+        } catch (err) {
+            msgEl.textContent = err.message;
         }
+    });
 
-        // --- UI Initialization ---
-        document.body.style.backgroundImage = `url('http://redtedcasino.com/BearSlot/img/background.jpg')`;
-        function updateBalance() {
-            balanceDisplay.textContent = `Balance: ${user.balance.toFixed(2)}`;
-            userInfoDiv.textContent = `Player: ${user.username}`;
+    document.getElementById('withdrawal-request-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const amount = parseFloat(document.getElementById('withdrawal-amount').value);
+        const msgEl = document.getElementById('withdrawal-message');
+        try {
+            await apiRequest('/api/user/request-withdrawal', 'POST', { amount }, 'casinoUserToken');
+            msgEl.textContent = 'Withdrawal request submitted successfully!';
+        } catch (err) {
+            msgEl.textContent = err.message;
         }
-        updateBalance();
-
-        // --- Game Spin Logic ---
-        spinButton.addEventListener('click', async () => {
-            const betAmount = parseInt(document.getElementById('bet-amount').value, 10);
-            if (isNaN(betAmount) || betAmount <= 0) { winningsDisplay.textContent = 'Invalid bet amount.'; return; }
-            if (user.balance < betAmount) { winningsDisplay.textContent = 'Insufficient balance.'; return; }
-
-            spinButton.disabled = true;
-            winningsDisplay.textContent = 'Spinning...';
-            reels.forEach(r => r.style.backgroundImage = '');
-
-            try {
-                // Use the shared apiRequest, specifying the casino user token
-                const data = await apiRequest('/api/spin', 'POST', { userId: user.id, betAmount, gameId }, 'casinoUserToken');
-                user.balance = data.newBalance;
-                sessionStorage.setItem('casinoUser', JSON.stringify(user));
-                updateBalance();
-                data.reels.forEach((symbolUrl, i) => { reels[i].style.backgroundImage = `url('${symbolUrl}')`; });
-                winningsDisplay.textContent = data.winnings > 0 ? `YOU WON: ${data.winnings}!` : ' ';
-            } catch (err) {
-                winningsDisplay.textContent = `Error: ${err.message}`;
-            } finally {
-                spinButton.disabled = false;
-            }
-        });
-
-        // --- Modal Handling ---
-        function setupModal(buttonId, modalId) {
-            const btn = document.getElementById(buttonId);
-            const modal = document.getElementById(modalId);
-            const closeBtn = modal.querySelector('.close-btn');
-            btn.addEventListener('click', () => modal.style.display = 'flex');
-            closeBtn.addEventListener('click', () => modal.style.display = 'none');
-        }
-        setupModal('update-password-btn', 'password-modal');
-        setupModal('request-withdrawal-btn', 'withdrawal-modal');
-
-        // --- Form Submissions ---
-        document.getElementById('password-update-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const newPassword = document.getElementById('new-password').value;
-            const msgEl = document.getElementById('password-message');
-            // ... validation ...
-            try {
-                await apiRequest('/api/user/update-password', 'POST', { newPassword }, 'casinoUserToken');
-                msgEl.textContent = 'Password updated successfully!';
-                // ...
-            } catch (err) {
-                msgEl.textContent = err.message;
-            }
-        });
-
-        document.getElementById('withdrawal-request-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const amount = parseFloat(document.getElementById('withdrawal-amount').value);
-            const msgEl = document.getElementById('withdrawal-message');
-            // ... validation ...
-            try {
-                await apiRequest('/api/user/request-withdrawal', 'POST', { amount }, 'casinoUserToken');
-                msgEl.textContent = 'Withdrawal request submitted successfully!';
-                // ...
-            } catch (err) {
-                msgEl.textContent = err.message;
-            }
-        });
     });
 }
