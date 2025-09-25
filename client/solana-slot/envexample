@@ -1,0 +1,6 @@
+SLOT_MACHINE_PRIVATE_KEY=28,252,.....,102
+MONGODB_URI=mongodb+srv://username:password@cluster0.mjdz5nd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+MONGODB_DB_NAME=slotmachine-db
+MONGODB_COLLECTION_NAME=slotmachine-collection
+SOLANA_RPC_URL=https://orbital-..........solana-mainnet.quiknode.pro/d3900........08
+PORT=3000

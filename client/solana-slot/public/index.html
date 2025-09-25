@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5F2TV8DV');</script>
+<!-- End Google Tag Manager -->
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slot Machine</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <style>
+        /* Add this to your existing styles */
+        #start-page-link {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #FFD700;
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: background-color 0.3s, color 0.3s;
+            z-index: 1000; /* Ensure it's above other elements */
+        }
+        #start-page-link:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #FFF;
+        }
+    </style>
+</head>
+<body>
+    <!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5F2TV8DV"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+
+    <a href="/start/" id="start-page-link">Start Page</a>
+
+    <div id="game-info">
+        <p id="balance"></p>
+        <p id="stake"></p>
+    </div>
+    <div id="slot-machine">
+        <div id="rolling-text"></div>
+        <div id="reels-container"></div>
+        <div id="button-overlay">
+            <div class="button-circle" data-button="1"></div>
+            <div class="button-circle" data-button="2"></div>
+            <div class="button-circle" data-button="3"></div>
+        </div>
+    </div>
+    <div id="wallet-info">
+        <p id="wallet-address"></p>
+        <p id="wallet-balance"></p>
+    </div>
+    
+    <script src="game.js"></script>
+    <script>
+        async function checkStoredWallet() {
+            const isWalletConnected = localStorage.getItem('walletConnected') === 'true';
+            const walletProvider = localStorage.getItem('walletProvider');
+
+            if (isWalletConnected && walletProvider) {
+                if (walletProvider === 'solflare' && window.solflare) {
+                    wallet = window.solflare;
+                } else if (walletProvider === 'phantom' && window.solana) {
+                    wallet = window.solana;
+                }
+
+                if (wallet) {
+                    try {
+                        await wallet.connect({ onlyIfTrusted: true });
+                        // Update UI to reflect connected state
+                        updateWalletUI();
+                    } catch (error) {
+                        console.error('Error reconnecting wallet:', error);
+                        localStorage.removeItem('walletConnected');
+                        localStorage.removeItem('walletProvider');
+                    }
+                }
+            }
+        }
+
+        // Call this function when the page loads
+        window.addEventListener('load', checkStoredWallet);
+    </script>
+</body>
+</html>
