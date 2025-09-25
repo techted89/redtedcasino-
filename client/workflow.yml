@@ -1,0 +1,47 @@
+name: Extract Slot Client Assets
+
+on:
+  # Trigger the workflow manually from the GitHub UI
+  workflow_dispatch: 
+  # Or, trigger on every push to the main branch
+  push:
+    branches:
+      - main
+
+jobs:
+  extract_assets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+
+      # ----------------------------------------------------
+      # Step 1: Check for the existence of the zip file
+      # This is a good practice to ensure the file is there before trying to unzip.
+      - name: Verify Zip File Exists
+        run: |
+          if [ -f "client/solana-slots.com-main.zip" ]; then
+            echo "Zip file found. Proceeding to extract."
+          else
+            echo "Error: client/solana-slots.com-main.zip not found!"
+            exit 1
+          fi
+
+      # ----------------------------------------------------
+      # Step 2: Unzip the file into the current directory
+      # The 'unzip' utility is pre-installed on Ubuntu runners.
+      # The default behavior extracts the contents relative to the current directory.
+      - name: Extract Slot Client Zip
+        # The 'run' command executes from the current working directory, 
+        # which is the root of the checked out repository.
+        run: unzip client/solana-slots.com-main.zip
+      
+      # ----------------------------------------------------
+      # Optional Step: List extracted files to verify
+      - name: Verify Extracted Contents
+        run: |
+          echo "Listing contents of the client directory:"
+          # List the contents of the 'client' directory, where the extracted files should now be
+          ls -R client/
+          
