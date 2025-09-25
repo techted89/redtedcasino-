@@ -115,7 +115,7 @@
                     `;
                     card.addEventListener('click', () => {
                         // Redirect to the slot page with the selected gameId
-                        window.location.href = `slot.html?game=${game.id}`;
+                        window.location.href = `${game.gameUrl}?game=${game.id}`;
                     });
                     gameListDiv.appendChild(card);
                 });
