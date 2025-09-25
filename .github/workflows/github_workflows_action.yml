@@ -1,5 +1,5 @@
-    - name: Extract tgz
-      uses: ihiroky/extract-action@v1
-      with:
-       file_path: /client/solana-slots.com-main.zip
-       extract_dir: /client/solana
+ - name: Extract zip
+   uses: ihiroky/extract-action@v1
+   with:
+     file_path: client/solana-slots.com-main.zip
+     extract_dir: client/solana
