@@ -13,23 +13,31 @@ export let config = {
     'bear-slot': {
       id: 'bear-slot',
       name: 'Bear Slot',
-      backgroundImage: 'http://redtedcasino.com/BearSlot/img/background.jpg',
+      gameUrl: '/bear-slot/index.html',
+      backgroundImage: '/bear-slot/img/background.jpg',
       symbols: {
-        S1: 'http://redtedcasino.com/BearSlot/img/symbol1.png',
-        S2: 'http://redtedcasino.com/BearSlot/img/symbol2.png',
-        S3: 'http://redtedcasino.com/BearSlot/img/symbol3.png',
-        S4: 'http://redtedcasino.com/BearSlot/img/symbol4.png',
-        S5: 'http://redtedcasino.com/BearSlot/img/symbol5.png',
-        WILD: 'http://redtedcasino.com/BearSlot/img/symbol_wild.png',
-        JACKPOT: 'http://redtedcasino.com/BearSlot/img/symbol_jackpot.png'
+        S1: '/bear-slot/img/symbol1.png',
+        S2: '/bear-slot/img/symbol2.png',
+        S3: '/bear-slot/img/symbol3.png',
+        S4: '/bear-slot/img/symbol4.png',
+        S5: '/bear-slot/img/symbol5.png',
+        WILD: '/bear-slot/img/symbol_wild.png',
+        JACKPOT: '/bear-slot/img/symbol_jackpot.png'
       },
-      paytable: {
-        'S1': { '3': 50, '4': 100, '5': 200 },
-        'S2': { '3': 40, '4': 80, '5': 160 },
-        'S3': { '3': 30, '4': 60, '5': 120 },
-        'S4': { '3': 20, '4': 40, '5': 80 },
-        'S5': { '3': 10, '4': 20, '5': 40 },
-        'JACKPOT': { '3': 500, '4': 1000, '5': 5000 }
+    },
+    'medusa-lair': {
+      id: 'medusa-lair',
+      name: "Medusa's Lair",
+      gameUrl: 'medusa-lair.html',
+      backgroundImage: '/medusa-lair/img/background.jpg',
+      symbols: {
+        S1: '/medusa-lair/img/symbol1.png',
+        S2: '/medusa-lair/img/symbol2.png',
+        S3: '/medusa-lair/img/symbol3.png',
+        S4: '/medusa-lair/img/symbol4.png',
+        S5: '/medusa-lair/img/symbol5.png',
+        WILD: '/medusa-lair/img/symbol_wild.png',
+        JACKPOT: '/medusa-lair/img/symbol_jackpot.png'
       }
     }
     // New games can be added here in the future
