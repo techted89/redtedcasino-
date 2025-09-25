@@ -2,7 +2,7 @@
 name: Unzip and Update Repository Content
 uses: moehami/unzip-and-update-action@uncompress
 description: 'Unzips a specified file, cleans up target directories, and commits the extracted content to the repository.'
-author: 'moehami' # Replace
+on: 'moehami' # Replace
 icon: 'archive'
 color: 'yellow'
 
