@@ -1,0 +1,78 @@
+# action.yml
+name: 'Unzip and Update Repository Content'
+description: 'Unzips a specified file, cleans up target directories, and commits the extracted content to the repository.'
+author: 'moehami' # Replace
+icon: 'archive'
+coloe: 'yellow"
+
+inputs:
+  zip_file_path:
+    description: 'Path to the zip file to extract, relative to the repository root.'
+    required: true
+  target_directories_to_clean:
+    description: 'Comma-separated list of directories to remove before moving new content (e.g., css,en,fonts,js).'
+    required: false
+    default: '' # No directories to clean by default
+  extracted_subfolder:
+    description: 'If the zip extracts to a subfolder (e.g., zip contains "project_root/index.html"), specify "project_root".'
+    required: false
+    default: '' # Assumes direct content in extracted_content
+
+outputs:
+  extracted_filename:
+    description: 'The name of the zip file that was extracted (without the .zip extension).'
+    value: ${{ steps.unzip.outputs.ZIP_FILENAME }}
+
+runs:
+  using: "composite" # Or "node16" for JavaScript action, or "docker" for Docker action
+  steps:
+    - name: Ensure zip file exists
+      shell: bash
+      run: |
+        if [ ! -f "${{ inputs.zip_file_path }}" ]; then
+          echo "Error: Zip file '${{ inputs.zip_file_path }}' not found!"
+          exit 1
+        fi
+
+    - name: Clean up existing directories
+      if: inputs.target_directories_to_clean != ''
+      shell: bash
+      run: |
+        IFS=',' read -r -a dirs_to_clean <<< "${{ inputs.target_directories_to_clean }}"
+        for dir in "${dirs_to_clean[@]}"; do
+          echo "Removing directory: $dir"
+          rm -rf "$dir" || true # Use || true to prevent failure if dir doesn't exist
+        done
+
+    - name: Unzip the file
+      id: unzip
+      shell: bash
+      run: |
+        unzip -o "${{ inputs.zip_file_path }}" -d extracted_content
+        echo "ZIP_FILENAME=$(basename -s .zip "${{ inputs.zip_file_path }}")" >> $GITHUB_OUTPUT
+
+    - name: Move extracted content
+      shell: bash
+      run: |
+        EXTRACTED_SOURCE="extracted_content"
+        if [ -n "${{ inputs.extracted_subfolder }}" ]; then
+          EXTRACTED_SOURCE="extracted_content/${{ inputs.extracted_subfolder }}"
+        fi
+
+        if [ ! -d "$EXTRACTED_SOURCE" ]; then
+          echo "Error: Extracted content source directory '$EXTRACTED_SOURCE' not found. Check your zip file structure or 'extracted_subfolder' input."
+          exit 1
+        fi
+
+        echo "Moving content from $EXTRACTED_SOURCE to current directory."
+        mv "$EXTRACTED_SOURCE"/* .
+        rm -rf extracted_content
+
+    - name: Commit and Push Changes
+      shell: bash
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add .
+        git commit -m "Action: Unzipped ${{ steps.unzip.outputs.ZIP_FILENAME }} and updated files" || echo "No changes to commit"
+        git push origin HEAD # Push to the current branch
