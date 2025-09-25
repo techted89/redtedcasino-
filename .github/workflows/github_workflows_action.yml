@@ -1,5 +1,13 @@
- - name: Extract zip
-   uses: ihiroky/extract-action@v1
-   with:
-     file_path: client/solana-slots.com-main.zip
-     extract_dir: client/solana
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Extract zip
+    - uses: ihiroky/extract-action@v1
+      with:
+        file_path: ./client/solana-slots.com-main.zip
+        extract_dir: ./client/solana
