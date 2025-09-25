@@ -3,7 +3,7 @@ name: 'Unzip and Update Repository Content'
 description: 'Unzips a specified file, cleans up target directories, and commits the extracted content to the repository.'
 author: 'moehami' # Replace
 icon: 'archive'
-coloe: 'yellow"
+color: 'yellow'
 
 inputs:
   zip_file_path:
