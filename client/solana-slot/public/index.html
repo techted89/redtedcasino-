@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Slot Machine</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+        }
+        #phaser-game {
+            width: 800px; /* Adjust as needed */
+            height: 600px; /* Adjust as needed */
+        }
+        #start-page-link {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #FFD700;
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 0.9em;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <a href="/start/" id="start-page-link">Start Page</a>
+    <div id="phaser-game"></div>
+    <script src="game-phaser.js"></script>
+</body>
+</html>

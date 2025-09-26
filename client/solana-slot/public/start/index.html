@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solana Slot Machine</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: white;
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+        }
+        #slot-machine {
+            background-image: url('../images/bg.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        #start-content {
+            text-align: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        h1 {
+            font-size: 2em;
+            color: #FFD700;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        p {
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        .multiplier-info {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .multiplier-item {
+            margin: 5px;
+            font-size: 1em;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button, #start-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 12px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 1em;
+            margin: 5px 0;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover, #start-button:hover {
+            background-color: #45a049;
+        }
+        #start-button {
+            font-size: 1.1em;
+            padding: 15px 20px;
+            margin-top: 15px;
+        }
+        #wallet-info {
+            margin-top: 15px;
+            font-size: 0.9em;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            word-break: break-all;
+        }
+        #top-up-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 25px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 12px;
+        }
+
+        #top-up-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        #top-up-slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        #top-up-amount {
+            font-size: 1.1em;
+            margin-top: 5px;
+        }
+        
+        @media (min-width: 768px) {
+            .button-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            #start-button {
+                grid-column: span 2;
+            }
+            h1 {
+                font-size: 2.5em;
+            }
+            p {
+                font-size: 1.1em;
+            }
+            .multiplier-item {
+                font-size: 1.2em;
+            }
+        }
+        
+        @media (max-width: 767px) {
+            #slot-machine {
+                padding: 10px;
+            }
+            #start-content {
+                padding: 15px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            p {
+                font-size: 0.9em;
+            }
+            .multiplier-info {
+                font-size: 0.8em;
+            }
+            .button-grid {
+                gap: 8px;
+            }
+            button, #start-button {
+                padding: 10px;
+                font-size: 0.9em;
+            }
+            #start-button {
+                font-size: 1em;
+                padding: 12px;
+            }
+            #wallet-info {
+                font-size: 0.8em;
+            }
+        }
+    </style>
+    <script src="https://unpkg.com/@solana/web3.js@1.73.0/lib/index.iife.min.js"></script>
+</head>
+<body>
+    <div id="slot-machine">
+        <div id="start-content">
+            <h1>Solana-Slots.com</h1>
+            <p>Experience the thrill of blockchain gaming with Solana slot machine!</p>
+            <p>Fast, secure, and provably fair gameplay.</p>
+            <div class="multiplier-info">
+                <div class="multiplier-item">💎 x15</div>
+                <div class="multiplier-item">🍒 x10</div>
+                <div class="multiplier-item">🍇 x5</div>
+                <div class="multiplier-item">🔔 x2</div>
+                <div class="multiplier-item">🍊 x1.5</div>
+                <div class="multiplier-item">🍋 x1</div>
+            </div>
+            <p>Match 3 or more symbols to win! Multipliers increase with more matches.</p>
+            <div id="wallet-info"></div>
+            <div class="button-grid">
+                <button id="connect-wallet">Connect Wallet</button>
+                <button id="withdraw-button" style="display: none;">Withdraw</button>
+                <button id="disconnect-wallet" style="display: none;">Disconnect Wallet</button>
+                <div id="top-up-container" style="display: none; grid-column: 1 / -1;">
+                    <input type="range" id="top-up-slider" min="0.01" max="1" step="0.01" value="0.01">
+                    <div id="top-up-amount">0.01 SOL</div>
+                    <button id="top-up-button">Top Up</button>
+                </div>
+                <a href="/" id="start-button">Start Playing</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        let wallet = null;
+        const walletInfo = document.getElementById('wallet-info');
+        const topUpContainer = document.getElementById('top-up-container');
+        const withdrawButton = document.getElementById('withdraw-button');
+        const disconnectButton = document.getElementById('disconnect-wallet');
+        const topUpSlider = document.getElementById('top-up-slider');
+        const topUpAmount = document.getElementById('top-up-amount');
+
+        const LAMPORTS_PER_SOL = 1000000000;
+
+        async function connectWallet() {
+            try {
+                if (window.solana && window.solana.isPhantom) {
+                    wallet = window.solana;
+                } else if (window.solflare) {
+                    wallet = window.solflare;
+                } else {
+                    alert('Please install Phantom or Solflare wallet');
+                    return;
+                }
+
+                await wallet.connect();
+                const publicKey = wallet.publicKey.toString();
+                updateWalletInfo(publicKey, 'Checking...');
+                topUpContainer.style.display = 'block';
+                withdrawButton.style.display = 'block';
+                disconnectButton.style.display = 'block';
+                document.getElementById('connect-wallet').style.display = 'none';
+                await checkBalance(publicKey);
+
+                if (wallet.isConnected) {
+                    localStorage.setItem('walletConnected', 'true');
+                    localStorage.setItem('walletProvider', wallet.isSolflare ? 'solflare' : 'phantom');
+                }
+            } catch (err) {
+                console.error('Error connecting wallet:', err);
+                alert('Failed to connect wallet');
+            }
+        }
+
+        async function disconnectWallet() {
+            if (wallet) {
+                await wallet.disconnect();
+                wallet = null;
+                walletInfo.textContent = '';
+                topUpContainer.style.display = 'none';
+                withdrawButton.style.display = 'none';
+                disconnectButton.style.display = 'none';
+                document.getElementById('connect-wallet').style.display = 'block';
+                localStorage.removeItem('walletConnected');
+                localStorage.removeItem('walletProvider');
+            }
+        }
+
+        async function checkBalance(publicKey) {
+            try {
+                const response = await fetch(`/balance?wallet=${publicKey}`);
+                const data = await response.json();
+                updateWalletInfo(publicKey, data.balance);
+            } catch (err) {
+                console.error('Error checking balance:', err);
+            }
+        }
+
+        function updateWalletInfo(publicKey, balance) {
+            walletInfo.textContent = `Connected: ${publicKey} | Balance: ${balance} coins`;
+        }
+
+        async function topUp() {
+            if (!wallet) {
+                alert('Please connect your wallet first');
+                return;
+            }
+
+            try {
+                const amount = parseFloat(topUpSlider.value);
+                showRollingText('Requesting transaction');
+                const response = await fetch('/requestTopUp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        publicKey: wallet.publicKey.toString(),
+                        amount: amount
+                    })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    showRollingText('Transaction created');
+                    const transaction = solanaWeb3.Transaction.from(
+                        Uint8Array.from(atob(data.transaction), c => c.charCodeAt(0))
+                    );
+
+                    try {
+                        const signedTransaction = await wallet.signTransaction(transaction);
+                        const serializedTransaction = signedTransaction.serialize();
+
+                        showRollingText('Transaction signed');
+                        const confirmResponse = await fetch('/sendSignedTopUpTransaction', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                signedTransaction: btoa(String.fromCharCode.apply(null, serializedTransaction)),
+                                publicKey: wallet.publicKey.toString(),
+                                amount: amount
+                            })
+                        });
+                        const confirmResult = await confirmResponse.json();
+
+                        if (confirmResult.success) {
+                            showRollingText('Transaction sent');
+                            await checkTransactionStatus(confirmResult.signature);
+                        } else {
+                            showRollingText('Failed to send transaction');
+                        }
+                    } catch (error) {
+                        console.error('Transaction rejected:', error);
+                        showRollingText('Transaction rejected');
+                    }
+                } else {
+                    showRollingText('Failed to create transaction');
+                }
+            } catch (error) {
+                console.error('Error topping up:', error);
+                showRollingText('An error occurred.');
+            } finally {
+                await checkBalance(wallet.publicKey.toString());
+            }
+        }
+
+        async function checkTransactionStatus(signature) {
+            let attempts = 0;
+            const maxAttempts = 10;
+            const delay = 3000; // 3 seconds
+
+            while (attempts < maxAttempts) {
+                try {
+                    const response = await fetch(`/checkTopUpTransaction?signature=${signature}&publicKey=${wallet.publicKey.toString()}`);
+                    const result = await response.json();
+
+                    if (result.confirmed) {
+                        showRollingText(`Added ${result.addedBalance} coins to your balance!`);
+                        await checkBalance(wallet.publicKey.toString());
+                        return;
+                    }
+
+                    showRollingText(`Confirmation... (${attempts + 1}/${maxAttempts})`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    attempts++;
+                } catch (error) {
+                    console.error('Error checking transaction status:', error);
+                }
+            }
+
+            showRollingText('Transaction confirmation timed out. Please check your wallet for the status.');
+        }
+
+        function showRollingText(message) {
+            console.log(message);
+            // Implement this function to show messages to the user
+            // For example:
+            // document.getElementById('message-display').textContent = message;
+        }
+
+        async function withdraw() {
+            if (!wallet) {
+                alert('Please connect your wallet first');
+                return;
+            }
+
+            try {
+                const response = await fetch('/withdraw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ wallet: wallet.publicKey.toString() })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error("Oops! We haven't received a JSON response");
+                }
+
+                const data = await response.json();
+                if (data.success) {
+                    alert(`Withdrawal successful!\nAmount: ${data.amount} SOL\nTransaction signature: ${data.signature}\nPlease wait for confirmation.`);
+                    await checkBalance(wallet.publicKey.toString());
+                } else {
+                    alert('Withdrawal failed: ' + data.error);
+                }
+            } catch (err) {
+                console.error('Error withdrawing:', err);
+                alert('Withdrawal failed: ' + err.message);
+            }
+        }
+
+        topUpSlider.addEventListener('input', function() {
+            topUpAmount.textContent = `${this.value} SOL`;
+        });
+
+        document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+        document.getElementById('disconnect-wallet').addEventListener('click', disconnectWallet);
+        document.getElementById('top-up-button').addEventListener('click', topUp);
+        document.getElementById('withdraw-button').addEventListener('click', withdraw);
+    </script>
+</body>
+</html>

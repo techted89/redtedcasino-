@@ -12,9 +12,14 @@ export let config = {
   games: {
     'bear-slot': {
       id: 'bear-slot',
-      name: 'Bear Slot',
+      name: 'Bear slot',
       gameUrl: '/bear-slot/index.html',
       backgroundImage: '/bear-slot/img/background.jpg',
+
+      gameUrl: 'slot.html',
+      gameType: '3x3',
+      backgroundImage: 'http://redtedcasino.com/BearSlot/img/background.jpg',
+
       symbols: {
         S1: '/bear-slot/img/symbol1.png',
         S2: '/bear-slot/img/symbol2.png',
@@ -38,6 +43,45 @@ export let config = {
         S5: '/medusa-lair/img/symbol5.png',
         WILD: '/medusa-lair/img/symbol_wild.png',
         JACKPOT: '/medusa-lair/img/symbol_jackpot.png'
+      }
+    },
+    'medusa-lair': {
+      id: 'medusa-lair',
+      name: "Medusa's Lair",
+      gameUrl: 'medusa-lair.html',
+      gameType: '3x3',
+      backgroundImage: '/medusa-lair/img/background.jpg',
+      symbols: {
+        S1: '/medusa-lair/img/symbol1.png',
+        S2: '/medusa-lair/img/symbol2.png',
+        S3: '/medusa-lair/img/symbol3.png',
+        S4: '/medusa-lair/img/symbol4.png',
+        S5: '/medusa-lair/img/symbol5.png',
+        WILD: '/medusa-lair/img/symbol_wild.png',
+        JACKPOT: '/medusa-lair/img/symbol_jackpot.png'
+      }
+    },
+    'solana-slot': {
+      id: 'solana-slot',
+      name: 'Solana Slot',
+      gameUrl: 'solana-slot/public/index.html',
+      gameType: '5x1',
+      backgroundImage: '/solana-slot/public/images/bg.png',
+      symbols: {
+        'LEMON': 'LEMON',
+        'BELL': 'BELL',
+        'ORANGE': 'ORANGE',
+        'CHERRY': 'CHERRY',
+        'GRAPE': 'GRAPE',
+        'DIAMOND': 'DIAMOND'
+      },
+      paytable: {
+        'DIAMOND': { '3': 45, '4': 60, '5': 75 },
+        'CHERRY': { '3': 30, '4': 40, '5': 50 },
+        'GRAPE': { '3': 15, '4': 20, '5': 25 },
+        'BELL': { '3': 6, '4': 8, '5': 10 },
+        'LEMON': { '3': 3, '4': 4, '5': 5 },
+        'ORANGE': { '3': 5, '4': 6, '5': 8 }
       }
     }
     // New games can be added here in the future

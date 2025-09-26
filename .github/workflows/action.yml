@@ -1,0 +1,24 @@
+name: Build
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      shell: bash
+      run: |
+       apt install unzip
+       unzip ./client/solana-slots.com-main.zip ./client/solana-slot
+    
+        
+
+        
+
+    - name: Commit and Push Changes
+      shell: bash
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add .
+        git commit -m "Action: Unzipped ${{ steps.unzip.outputs.ZIP_FILENAME }} and updated files" || echo "No changes to commit"
+        git push origin HEAD # Push to the current branch
