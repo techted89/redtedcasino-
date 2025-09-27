@@ -12,6 +12,7 @@
 <div id="password-modal" class="modal-backdrop hidden">...</div>
 <div id="profile-modal" class="modal-backdrop hidden">...</div>
 
+
 <script src="utils.js"></script>
 <script>
     const loginForm = document.getElementById('user-login-form');
@@ -31,7 +32,7 @@
             } else if (!status.profileCompleted) {
                 profileModal.classList.remove('hidden');
             } else {
-                window.location.href = 'game-selection.html';
+                window.location.href = 'game.html';
             }
         } catch (error) {
             errorMessage.textContent = error.message;
@@ -92,5 +93,7 @@
         }
     });
 </script>
+<script src="app.js"></script>
+
 </body>
 </html>

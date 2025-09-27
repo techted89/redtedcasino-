@@ -30,15 +30,19 @@ class GameScene extends Phaser.Scene {
     }
 
     create() {
-        // Initialize user data from localStorage
+        // Initialize user data from sessionStorage to align with the main application
         try {
-            const loggedInUser = localStorage.getItem('loggedInUser');
-            if (loggedInUser) {
-                this.user = JSON.parse(loggedInUser);
+            const casinoUser = sessionStorage.getItem('casinoUser');
+            this.token = sessionStorage.getItem('casinoUserToken');
+            if (casinoUser && this.token) {
+                this.user = JSON.parse(casinoUser);
                 this.gameState.balance = this.user.balance;
+            } else {
+                this.user = null;
+                this.token = null;
             }
         } catch (error) {
-            console.error('Error parsing user data from localStorage:', error);
+            console.error('Error parsing user data from sessionStorage:', error);
             this.user = null;
         }
 
@@ -106,7 +110,10 @@ class GameScene extends Phaser.Scene {
         try {
             const response = await fetch('/api/spin', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.token}`
+                },
                 body: JSON.stringify({
                     userId: this.user.id,
                     betAmount: betAmount,
@@ -121,6 +128,10 @@ class GameScene extends Phaser.Scene {
 
             const data = await response.json();
             this.animateReels(data.reels);
+
+            // Update user object and save to sessionStorage
+            this.user.balance = data.newBalance;
+            sessionStorage.setItem('casinoUser', JSON.stringify(this.user));
 
             setTimeout(() => {
                 this.spinning = false;
