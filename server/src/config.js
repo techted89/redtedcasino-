@@ -24,14 +24,6 @@ export let config = {
         S5: 'http://redtedcasino.com/BearSlot/img/symbol5.png',
         WILD: 'http://redtedcasino.com/BearSlot/img/symbol_wild.png',
         JACKPOT: 'http://redtedcasino.com/BearSlot/img/symbol_jackpot.png'
-      },
-      paytable: {
-        'S1': { '3': 50, '4': 100, '5': 200 },
-        'S2': { '3': 40, '4': 80, '5': 160 },
-        'S3': { '3': 30, '4': 60, '5': 120 },
-        'S4': { '3': 20, '4': 40, '5': 80 },
-        'S5': { '3': 10, '4': 20, '5': 40 },
-        'JACKPOT': { '3': 500, '4': 1000, '5': 5000 }
       }
     },
     'medusa-lair': {
@@ -63,14 +55,6 @@ export let config = {
         'CHERRY': 'CHERRY',
         'GRAPE': 'GRAPE',
         'DIAMOND': 'DIAMOND'
-      },
-      paytable: {
-        'DIAMOND': { '3': 45, '4': 60, '5': 75 },
-        'CHERRY': { '3': 30, '4': 40, '5': 50 },
-        'GRAPE': { '3': 15, '4': 20, '5': 25 },
-        'BELL': { '3': 6, '4': 8, '5': 10 },
-        'LEMON': { '3': 3, '4': 4, '5': 5 },
-        'ORANGE': { '3': 5, '4': 6, '5': 8 }
       }
     }
     // New games can be added here in the future
