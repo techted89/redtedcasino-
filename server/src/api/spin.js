@@ -101,23 +101,13 @@ router.post('/spin', async (req, res) => {
             return res.status(404).json({ message: 'Game not found' });
         }
 
-        // --- Fetch dynamic game config, with fallback to static config ---
-        let paytable, symbolWeights;
-        try {
-            // Try to get config from the database first.
-            const dbConfig = await getGameConfiguration(gameId);
-            paytable = dbConfig.paytable;
-            symbolWeights = dbConfig.symbolWeights;
-        } catch (error) {
-            // If it fails (e.g., game not in DB), use the default config.
-            console.warn(`Could not find a dynamic configuration for game '${gameId}'. Falling back to default config. Error: ${error.message}`);
-            paytable = gameConfig.paytable;
-            symbolWeights = undefined; // No weighted spin for default configs.
-        }
+        // --- Fetch dynamic game config from the database ---
+        const { paytable, symbolWeights } = await getGameConfiguration(gameId);
 
-        // After attempting to get the paytable from DB or config, check if it exists.
-        if (!paytable) {
-            return res.status(500).json({ message: `No paytable configured for game '${gameId}'. Please contact an admin.` });
+        // A game MUST have a paytable defined in the database.
+        if (!paytable || Object.keys(paytable).length === 0) {
+            console.error(`Configuration Error: No paytable found in the database for game '${gameId}'.`);
+            return res.status(500).json({ message: `Configuration error for game '${gameId}'. Please contact an admin.` });
         }
 
 

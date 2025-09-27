@@ -122,8 +122,9 @@ export async function getGameConfiguration(gameId) {
     // Assumes `paytables` table also has a `symbolWeights` JSON column.
     const [rows] = await pool.query("SELECT paytable, symbolWeights FROM paytables WHERE gameId = ?", [gameId]);
     if (rows.length === 0) {
-        // Return a default structure if no config is found in the DB yet.
-        return { paytable: {}, symbolWeights: {} };
+        // Throw an error if no configuration is found in the database.
+        // This is a critical error, as the game cannot function without a paytable.
+        throw new Error(`Game configuration for '${gameId}' not found in database.`);
     }
     // The columns can be null if they were added after the row was created.
     return {

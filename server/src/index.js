@@ -89,7 +89,8 @@ app.get('/api/games', (req, res) => {
     const gamesList = Object.values(config.games).map(game => ({
         id: game.id,
         name: game.name,
-        backgroundImage: game.backgroundImage
+        backgroundImage: game.backgroundImage,
+        gameUrl: game.gameUrl // Include the gameUrl for client-side routing
     }));
     res.json(gamesList);
 });
