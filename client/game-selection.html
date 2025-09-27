@@ -88,6 +88,63 @@
         <!-- Game cards will be inserted here by JavaScript -->
     </div>
 
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const userInfoDiv = document.getElementById('user-info');
+        const gameListDiv = document.getElementById('game-list');
+        const logoutButton = document.getElementById('logout-button');
+
+        // 1. Check for user login
+        const user = JSON.parse(localStorage.getItem('casinoUser'));
+        const token = localStorage.getItem('casinoUserToken');
+
+        if (!user || !token) {
+            window.location.href = 'index.html'; // Redirect to login if not logged in
+            return;
+        }
+
+        // 2. Display user info
+        userInfoDiv.textContent = `Welcome, ${user.username}! Balance: ${user.balance}`;
+
+        // 3. Logout functionality
+        logoutButton.addEventListener('click', () => {
+            localStorage.removeItem('casinoUser');
+            localStorage.removeItem('casinoUserToken');
+            window.location.href = 'index.html';
+        });
+
+        // 4. Fetch and display games
+        async function loadGames() {
+            try {
+                const response = await fetch('/api/games');
+                if (!response.ok) throw new Error('Failed to load games');
+                const games = await response.json();
+
+                games.forEach(game => {
+                    const card = document.createElement('div');
+                    card.className = 'game-card';
+                    card.dataset.gameId = game.id;
+                    card.innerHTML = `
+                        <img src="${game.backgroundImage}" alt="${game.name}">
+                        <div class="title">${game.name}</div>
+                    `;
+                    card.addEventListener('click', () => {
+                        // Redirect to the slot page with the selected gameId
+                        window.location.href = `${game.gameUrl}?game=${game.id}`;
+                    });
+                    gameListDiv.appendChild(card);
+                });
+
+            } catch (err) {
+                gameListDiv.innerHTML = `<p style="color: red;">Error: ${err.message}</p>`;
+            }
+        }
+
+        loadGames();
+    });
+</script>
+=======
 <script src="app.js"></script>
 <script src="game-selection-fx.js"></script>
 

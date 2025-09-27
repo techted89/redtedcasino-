@@ -12,6 +12,88 @@
 <div id="password-modal" class="modal-backdrop hidden">...</div>
 <div id="profile-modal" class="modal-backdrop hidden">...</div>
 
+
+<script src="utils.js"></script>
+<script>
+    const loginForm = document.getElementById('user-login-form');
+    const errorMessage = document.getElementById('error-message');
+    const passwordModal = document.getElementById('password-modal');
+    const passwordForm = document.getElementById('password-change-form');
+    const passwordErrorMessage = document.getElementById('password-error-message');
+    const profileModal = document.getElementById('profile-modal');
+    const profileForm = document.getElementById('profile-update-form');
+    const profileErrorMessage = document.getElementById('profile-error-message');
+
+    async function checkUserStatus() {
+        try {
+            const status = await apiRequest('/api/user/status', 'GET', null, 'casinoUserToken');
+            if (!status.passwordChanged) {
+                passwordModal.classList.remove('hidden');
+            } else if (!status.profileCompleted) {
+                profileModal.classList.remove('hidden');
+            } else {
+                window.location.href = 'game.html';
+            }
+        } catch (error) {
+            errorMessage.textContent = error.message;
+        }
+    }
+
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        errorMessage.textContent = '';
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/users/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Login failed');
+
+            sessionStorage.setItem('casinoUser', JSON.stringify(data.user));
+            sessionStorage.setItem('casinoUserToken', data.token);
+            await checkUserStatus();
+        } catch (err) {
+            errorMessage.textContent = err.message;
+        }
+    });
+
+    passwordForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+        passwordErrorMessage.textContent = '';
+        if (newPassword !== confirmPassword) { passwordErrorMessage.textContent = 'Passwords do not match.'; return; }
+        if (newPassword.length < 8) { passwordErrorMessage.textContent = 'Password must be at least 8 characters.'; return; }
+        try {
+            await apiRequest('/api/user/update-password', 'POST', { newPassword }, 'casinoUserToken');
+            passwordModal.classList.add('hidden');
+            await checkUserStatus();
+        } catch (error) {
+            passwordErrorMessage.textContent = error.message;
+        }
+    });
+
+    profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const firstName = document.getElementById('update-firstname').value;
+        const lastName = document.getElementById('update-lastname').value;
+        const age = parseInt(document.getElementById('update-age').value, 10);
+        profileErrorMessage.textContent = '';
+        if (!firstName || !lastName || !age || age <= 0) { profileErrorMessage.textContent = 'Please fill out all fields with valid data.'; return; }
+        try {
+            await apiRequest('/api/user/update-profile', 'POST', { firstName, lastName, age }, 'casinoUserToken');
+            profileModal.classList.add('hidden');
+            await checkUserStatus();
+        } catch (error) {
+            profileErrorMessage.textContent = error.message;
+        }
+    });
+</script>
 <script src="app.js"></script>
+
 </body>
 </html>
