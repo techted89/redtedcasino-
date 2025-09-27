@@ -13,7 +13,7 @@ export let config = {
     'bear-slot': {
       id: 'bear-slot',
       name: 'Bear Slot',
-      gameUrl: 'slot.html',
+      gameUrl: 'bear-slot/index.html',
       gameType: '3x3',
       backgroundImage: 'http://redtedcasino.com/BearSlot/img/background.jpg',
       symbols: {

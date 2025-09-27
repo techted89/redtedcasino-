@@ -250,7 +250,7 @@ if (document.getElementById('game-list')) {
                         <div class="title">${game.name}</div>
                     `;
                     card.addEventListener('click', () => {
-                        window.location.href = `slot.html?game=${game.id}`;
+                        window.location.href = `${game.gameUrl}?game=${game.id}`;
                     });
 
                     // Add hover effects

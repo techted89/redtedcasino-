@@ -7,8 +7,8 @@ class MedusaLairScene extends Phaser.Scene {
 
     init(data) {
         this.gameId = data.gameId;
-        this.user = JSON.parse(localStorage.getItem('casinoUser'));
-        this.token = localStorage.getItem('casinoUserToken');
+        this.user = JSON.parse(sessionStorage.getItem('casinoUser'));
+        this.token = sessionStorage.getItem('casinoUserToken');
     }
 
     preload() {
@@ -113,7 +113,7 @@ class MedusaLairScene extends Phaser.Scene {
 
     updateBalance(newBalance) {
         this.user.balance = newBalance;
-        localStorage.setItem('casinoUser', JSON.stringify(this.user));
+        sessionStorage.setItem('casinoUser', JSON.stringify(this.user));
         this.balanceText.setText(`Balance: ${newBalance}`);
     }
 }
