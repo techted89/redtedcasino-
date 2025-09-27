@@ -12,11 +12,21 @@ export let config = {
   games: {
     'bear-slot': {
       id: 'bear-slot',
+
       name: 'Bear Slot',
       gameUrl: 'bear-slot/index.html',
+
+      name: 'Bear slot',
+      gameUrl: '/bear-slot/index.html',
+      backgroundImage: '/bear-slot/img/background.jpg',
+
+      gameUrl: 'slot.html',
+
       gameType: '3x3',
       backgroundImage: 'http://redtedcasino.com/BearSlot/img/background.jpg',
+
       symbols: {
+
         S1: 'http://redtedcasino.com/BearSlot/img/symbol1.png',
         S2: 'http://redtedcasino.com/BearSlot/img/symbol2.png',
         S3: 'http://redtedcasino.com/BearSlot/img/symbol3.png',
@@ -24,6 +34,30 @@ export let config = {
         S5: 'http://redtedcasino.com/BearSlot/img/symbol5.png',
         WILD: 'http://redtedcasino.com/BearSlot/img/symbol_wild.png',
         JACKPOT: 'http://redtedcasino.com/BearSlot/img/symbol_jackpot.png'
+
+        S1: '/bear-slot/img/symbol1.png',
+        S2: '/bear-slot/img/symbol2.png',
+        S3: '/bear-slot/img/symbol3.png',
+        S4: '/bear-slot/img/symbol4.png',
+        S5: '/bear-slot/img/symbol5.png',
+        WILD: '/bear-slot/img/symbol_wild.png',
+        JACKPOT: '/bear-slot/img/symbol_jackpot.png'
+      },
+    },
+    'medusa-lair': {
+      id: 'medusa-lair',
+      name: "Medusa's Lair",
+      gameUrl: 'medusa-lair.html',
+      backgroundImage: '/medusa-lair/img/background.jpg',
+      symbols: {
+        S1: '/medusa-lair/img/symbol1.png',
+        S2: '/medusa-lair/img/symbol2.png',
+        S3: '/medusa-lair/img/symbol3.png',
+        S4: '/medusa-lair/img/symbol4.png',
+        S5: '/medusa-lair/img/symbol5.png',
+        WILD: '/medusa-lair/img/symbol_wild.png',
+        JACKPOT: '/medusa-lair/img/symbol_jackpot.png'
+
       }
     },
     'medusa-lair': {
