@@ -50,3 +50,29 @@ CREATE TABLE IF NOT EXISTS `game_statistics` (
   `totalWon` decimal(20,2) DEFAULT 0.00,
   PRIMARY KEY (`gameId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- Table for tracking player progression in the Aetherian Vault game
+CREATE TABLE IF NOT EXISTS `player_aether_progress` (
+  `userId` int(11) NOT NULL,
+  `aetherLevel` int(11) NOT NULL DEFAULT 1,
+  `aetherPoints` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`userId`),
+  CONSTRAINT `player_aether_progress_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+-- Table for managing the progressive jackpot pools
+CREATE TABLE IF NOT EXISTS `progressive_jackpots` (
+  `jackpotId` varchar(50) NOT NULL,
+  `poolAmount` decimal(20,2) NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (`jackpotId`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Seed the initial jackpot pools. This ensures they exist on first setup.
+INSERT INTO `progressive_jackpots` (`jackpotId`, `poolAmount`)
+VALUES
+  ('minor', 500.00),
+  ('major', 5000.00),
+  ('grand', 50000.00)
+ON DUPLICATE KEY UPDATE `poolAmount`=VALUES(`poolAmount`);

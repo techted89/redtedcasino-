@@ -1,86 +1,103 @@
-// --- Game Selection Scene ---
-class GameSelectionScene extends Phaser.Scene {
-    constructor() {
-        super({ key: 'GameSelectionScene' });
-    }
-
-    create() {
-        this.add.text(400, 50, 'Choose Your Game', { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
-
-        const user = JSON.parse(sessionStorage.getItem('casinoUser'));
-        if (!user) {
-            this.add.text(400, 300, 'Please log in first.', { fontSize: '24px', fill: '#ff0000' }).setOrigin(0.5);
-            this.time.delayedCall(2000, () => window.location.href = 'index.html');
-            return;
-        }
-
-        apiRequest('/api/games', 'GET', null, 'casinoUserToken')
-            .then(games => {
-                let y = 150;
-                games.forEach(gameData => {
-                    const gameText = this.add.text(400, y, gameData.name, { fontSize: '24px', fill: '#fff', backgroundColor: '#333', padding: { x: 10, y: 5 } })
-                        .setOrigin(0.5)
-                        .setInteractive();
-
-                    gameText.on('pointerdown', () => {
-                        this.scene.start('SlotMachineScene', { gameData });
-                    });
-                    gameText.on('pointerover', () => gameText.setStyle({ fill: '#ff0' }));
-                    gameText.on('pointerout', () => gameText.setStyle({ fill: '#fff' }));
-                    y += 60;
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching games:', error);
-                this.add.text(400, 300, 'Error loading games. Please try again.', { fontSize: '24px', fill: '#ff0000' }).setOrigin(0.5);
-            });
-    }
-}
-
-// --- Unified Slot Machine Scene ---
+// --- Unified Aetherian Vault Slot Machine Scene ---
 class SlotMachineScene extends Phaser.Scene {
     constructor() {
         super({ key: 'SlotMachineScene' });
     }
 
-    init(data) {
-        this.gameData = data.gameData;
+    init() {
+        // Hardcode the game ID since this is now a single-game application
+        this.gameId = 'aetherian-vault';
         this.user = JSON.parse(sessionStorage.getItem('casinoUser'));
         this.token = sessionStorage.getItem('casinoUserToken');
         this.reels = [];
         this.isSpinning = false;
+        this.gameData = null; // Will be fetched from the server
     }
 
     preload() {
-        // Dynamically load assets based on the selected game
+        // No assets are preloaded here; they will be loaded dynamically in create()
+    }
+
+    create() {
+        // Fetch all initial data in parallel
+        Promise.all([
+            apiRequest('/api/games', 'GET', null, 'casinoUserToken'),
+            apiRequest('/api/aether-progress', 'GET', null, 'casinoUserToken'), // Assuming this endpoint exists
+            apiRequest('/api/jackpots', 'GET', null, 'casinoUserToken') // Assuming this endpoint exists
+        ])
+        .then(([games, aetherProgress, jackpots]) => {
+            this.gameData = games.find(g => g.id === this.gameId);
+            this.aetherProgress = aetherProgress;
+            this.jackpots = jackpots;
+
+            if (this.gameData) {
+                this.loadAssetsAndInitialize();
+            } else {
+                this.add.text(400, 300, 'Error: Game data could not be loaded.', { color: '#ff0000', fontSize: '20px' }).setOrigin(0.5);
+            }
+        })
+        .catch(error => {
+            console.error('Failed to fetch initial game state:', error);
+            this.add.text(400, 300, `Error: ${error.message}`, { color: '#ff0000', fontSize: '20px' }).setOrigin(0.5);
+        });
+    }
+
+    loadAssetsAndInitialize() {
+        // Now that we have gameData, load the assets
         this.load.image(`background_${this.gameData.id}`, this.gameData.backgroundImage);
         for (const key in this.gameData.symbols) {
             this.load.image(key, this.gameData.symbols[key]);
         }
-    }
 
-    create() {
-        this.add.image(400, 300, `background_${this.gameData.id}`);
-        this.reelsContainer = this.add.container(400, 300);
+        // Once loading is complete, build the scene
+        this.load.once('complete', () => {
+            this.add.image(400, 300, `background_${this.gameData.id}`);
+            this.reelsContainer = this.add.container(400, 300);
+            this.createUI();
+            this.initReels();
+        });
 
-        this.createUI();
-        this.initReels();
+        this.load.start();
     }
 
     createUI() {
+        // Game Title
         this.add.text(400, 30, this.gameData.name, { fontSize: '32px', fill: '#fff' }).setOrigin(0.5);
-        this.balanceText = this.add.text(20, 20, `Balance: ${this.user.balance.toFixed(2)}`, { fontSize: '20px', fill: '#fff' });
-        this.winningsText = this.add.text(400, 500, '', { fontSize: '28px', fill: '#ffd700' }).setOrigin(0.5);
-        this.add.text(20, 50, 'Update Password', { fontSize: '16px', fill: '#ccc' }).setInteractive().on('pointerdown', () => document.getElementById('password-modal').classList.remove('hidden'));
-        this.add.text(20, 75, 'Request Withdrawal', { fontSize: '16px', fill: '#ccc' }).setInteractive().on('pointerdown', () => document.getElementById('withdrawal-modal').classList.remove('hidden'));
-        this.add.text(780, 20, 'Back to Games', { fontSize: '16px', fill: '#ccc' }).setOrigin(1, 0).setInteractive().on('pointerdown', () => this.scene.start('GameSelectionScene'));
 
+        // Jackpot Displays
+        this.jackpotTextMinor = this.add.text(20, 20, `Minor: $${this.jackpots.minor.toFixed(2)}`, { fontSize: '18px', fill: '#cd7f32' });
+        this.jackpotTextMajor = this.add.text(20, 45, `Major: $${this.jackpots.major.toFixed(2)}`, { fontSize: '18px', fill: '#c0c0c0' });
+        this.jackpotTextGrand = this.add.text(20, 70, `Grand: $${this.jackpots.grand.toFixed(2)}`, { fontSize: '18px', fill: '#ffd700' });
+
+        // Ascension Meter
+        this.add.text(780, 20, 'Aether Level', { fontSize: '16px', fill: '#ccc' }).setOrigin(1, 0);
+        this.aetherLevelText = this.add.text(780, 40, this.aetherProgress.aetherLevel, { fontSize: '24px', fill: '#00ffff' }).setOrigin(1, 0);
+        this.ascensionMeter = this.add.graphics();
+        this.updateAscensionMeter();
+
+        // Player Info & Actions
+        this.balanceText = this.add.text(20, 120, `Balance: ${this.user.balance.toFixed(2)}`, { fontSize: '20px', fill: '#fff' });
+        this.winningsText = this.add.text(400, 500, '', { fontSize: '28px', fill: '#ffd700' }).setOrigin(0.5);
+
+        // Controls
         this.betAmount = 10;
         this.betText = this.add.text(20, 550, `Bet: ${this.betAmount}`, { fontSize: '24px', fill: '#fff' });
         this.add.text(120, 540, '+', { fontSize: '32px', fill: '#0f0' }).setInteractive().on('pointerdown', () => this.changeBet(10));
         this.add.text(120, 560, '-', { fontSize: '32px', fill: '#f00' }).setInteractive().on('pointerdown', () => this.changeBet(-10));
-
         this.add.text(400, 550, 'SPIN', { fontSize: '32px', fill: '#0f0', backgroundColor: '#555', padding: {x: 20, y: 10}}).setOrigin(0.5).setInteractive().on('pointerdown', () => this.spin());
+    }
+
+    updateAscensionMeter() {
+        const nextLevelPoints = 1000; // This would be dynamic in a real implementation
+        const progress = this.aetherProgress.aetherPoints / nextLevelPoints;
+
+        this.ascensionMeter.clear();
+        this.ascensionMeter.fillStyle(0x003366, 1);
+        this.ascensionMeter.fillRect(680, 70, 100, 20);
+        this.ascensionMeter.fillStyle(0x00ffff, 1);
+        this.ascensionMeter.fillRect(680, 70, 100 * progress, 20);
+
+        this.aetherLevelText.setText(`Level ${this.aetherProgress.aetherLevel}`);
     }
 
     initReels() {
@@ -114,7 +131,7 @@ class SlotMachineScene extends Phaser.Scene {
         this.isSpinning = true;
         this.winningsText.setText('');
 
-        const symbolKeys = Object.keys(this.gameData.symbols);
+        // Visual spinning effect
         this.reels.forEach(reelContainer => {
             this.tweens.add({
                 targets: reelContainer,
@@ -127,15 +144,21 @@ class SlotMachineScene extends Phaser.Scene {
         });
 
         try {
-            const data = await apiRequest('/api/spin', 'POST', {
-                userId: this.user.id,
-                betAmount: this.betAmount,
-                gameId: this.gameData.id
+            // Call the new dedicated endpoint
+            const data = await apiRequest('/api/spin/aetherian-vault', 'POST', {
+                betAmount: this.betAmount
             }, 'casinoUserToken');
 
+            // Update user balance in session and UI
             this.user.balance = data.newBalance;
             sessionStorage.setItem('casinoUser', JSON.stringify(this.user));
             this.balanceText.setText(`Balance: ${this.user.balance.toFixed(2)}`);
+
+            // Update Aether progression and UI
+            this.aetherProgress = data.aetherProgress;
+            this.updateAscensionMeter();
+
+            // Display the final reel results from the server
             this.displayResults(data.reels);
 
             if (data.winnings > 0) {
@@ -169,7 +192,7 @@ const config = {
     height: 600,
     parent: 'phaser-container',
     backgroundColor: '#1a1a1a',
-    scene: [GameSelectionScene, SlotMachineScene]
+    scene: [SlotMachineScene] // Only load the main slot machine scene
 };
 
 const game = new Phaser.Game(config);

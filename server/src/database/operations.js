@@ -244,3 +244,55 @@ export async function getGameStatistics() {
     const [rows] = await pool.query("SELECT * FROM game_statistics ORDER BY gameId");
     return rows;
 }
+
+// --- Aetherian Vault Game Operations ---
+
+export async function getPlayerAetherProgress(userId) {
+    const [rows] = await pool.query("SELECT * FROM player_aether_progress WHERE userId = ?", [userId]);
+    if (rows.length === 0) {
+        // If player has no record, create one and return default values
+        await pool.query("INSERT INTO player_aether_progress (userId, aetherLevel, aetherPoints) VALUES (?, 1, 0)", [userId]);
+        return { userId, aetherLevel: 1, aetherPoints: 0 };
+    }
+    return rows[0];
+}
+
+export async function updatePlayerAetherProgress(userId, pointsToAdd, newLevel = null) {
+    let query;
+    let params;
+
+    if (newLevel !== null) {
+        // This is for a level-up or reset action
+        query = "UPDATE player_aether_progress SET aetherPoints = 0, aetherLevel = ? WHERE userId = ?";
+        params = [newLevel, userId];
+    } else {
+        // Just add points
+        query = "UPDATE player_aether_progress SET aetherPoints = aetherPoints + ? WHERE userId = ?";
+        params = [pointsToAdd, userId];
+    }
+    await pool.query(query, params);
+    return getPlayerAetherProgress(userId);
+}
+
+export async function getJackpotPools() {
+    const [rows] = await pool.query("SELECT * FROM progressive_jackpots");
+    // Convert the array of objects to a simple { jackpotId: amount } object
+    return rows.reduce((acc, row) => {
+        acc[row.jackpotId] = row.poolAmount;
+        return acc;
+    }, {});
+}
+
+export async function updateJackpotPool(jackpotId, amountToAdd) {
+    await pool.query(
+        "UPDATE progressive_jackpots SET poolAmount = poolAmount + ? WHERE jackpotId = ?",
+        [amountToAdd, jackpotId]
+    );
+}
+
+export async function resetJackpot(jackpotId, baseAmount) {
+    await pool.query(
+        "UPDATE progressive_jackpots SET poolAmount = ? WHERE jackpotId = ?",
+        [baseAmount, jackpotId]
+    );
+}

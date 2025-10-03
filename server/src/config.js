@@ -10,51 +10,26 @@ export let config = {
   adminPassword: process.env.ADMIN_PASSWORD || 'supersecretpassword',
   jwtSecret: process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev',
   games: {
-    'bear-slot': {
-      id: 'bear-slot',
-      name: 'Bear Slot',
-      gameUrl: 'game.html',
-      gameType: '3x3',
-      backgroundImage: 'http://redtedcasino.com/BearSlot/img/background.jpg',
+    'aetherian-vault': {
+      id: 'aetherian-vault',
+      name: 'Aetherian Vault',
+      gameUrl: 'game.html', // Uses the unified game hub
+      gameType: '5x4',
+      backgroundImage: '/aetherian-vault/img/background.jpg',
       symbols: {
-        S1: 'http://redtedcasino.com/BearSlot/img/symbol1.png',
-        S2: 'http://redtedcasino.com/BearSlot/img/symbol2.png',
-        S3: 'http://redtedcasino.com/BearSlot/img/symbol3.png',
-        S4: 'http://redtedcasino.com/BearSlot/img/symbol4.png',
-        S5: 'http://redtedcasino.com/BearSlot/img/symbol5.png',
-        WILD: 'http://redtedcasino.com/BearSlot/img/symbol_wild.png',
-        JACKPOT: 'http://redtedcasino.com/BearSlot/img/symbol_jackpot.png'
-      }
-    },
-    'medusa-lair': {
-      id: 'medusa-lair',
-      name: "Medusa's Lair",
-      gameUrl: 'game.html',
-      gameType: '3x3',
-      backgroundImage: '/medusa-lair/img/background.jpg',
-      symbols: {
-        S1: '/medusa-lair/img/symbol1.png',
-        S2: '/medusa-lair/img/symbol2.png',
-        S3: '/medusa-lair/img/symbol3.png',
-        S4: '/medusa-lair/img/symbol4.png',
-        S5: '/medusa-lair/img/symbol5.png',
-        WILD: '/medusa-lair/img/symbol_wild.png',
-        JACKPOT: '/medusa-lair/img/symbol_jackpot.png'
-      }
-    },
-    'solana-slot': {
-      id: 'solana-slot',
-      name: 'Solana Slot',
-      gameUrl: 'game.html',
-      gameType: '5x1',
-      backgroundImage: '/solana-slot/public/images/bg.png',
-      symbols: {
-        'LEMON': 'LEMON',
-        'BELL': 'BELL',
-        'ORANGE': 'ORANGE',
-        'CHERRY': 'CHERRY',
-        'GRAPE': 'GRAPE',
-        'DIAMOND': 'DIAMOND'
+        // High-Value Symbols
+        'CHRONOS_ORB': '/aetherian-vault/img/chronos_orb.png',
+        'INFINITY_GEAR': '/aetherian-vault/img/infinity_gear.png',
+        'CELESTIAL_MAP': '/aetherian-vault/img/celestial_map.png',
+        // Low-Value Symbols
+        'ACE': '/aetherian-vault/img/ace.png',
+        'KING': '/aetherian-vault/img/king.png',
+        'QUEEN': '/aetherian-vault/img/queen.png',
+        'JACK': '/aetherian-vault/img/jack.png',
+        // Special Symbols
+        'AETHERIAN_KEY': '/aetherian-vault/img/wild.png', // Wild
+        'VAULT_CORE': '/aetherian-vault/img/scatter.png', // Scatter
+        'AETHER_SHARD': '/aetherian-vault/img/shard.png' // Progression Symbol
       }
     }
     // New games can be added here in the future

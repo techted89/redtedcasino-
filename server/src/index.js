@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import spinRouter from './api/spin.js';
 import adminRouter from './api/admin.js';
 import userRouter from './api/user.js';
+import aetherianVaultRouter from './api/aetherianVault.js';
 // Database Operations
 import { getUserByUsername } from './database/operations.js';
 
@@ -97,6 +98,7 @@ app.get('/api/games', (req, res) => {
 
 // --- API ROUTERS ---
 app.use('/api', spinRouter);
+app.use('/api', aetherianVaultRouter); // Mount the new router
 app.use('/api/admin', adminRouter);
 app.use('/api/user', userRouter);
 

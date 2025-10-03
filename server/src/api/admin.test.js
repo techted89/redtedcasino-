@@ -26,6 +26,12 @@ jest.unstable_mockModule('../database/operations.js', () => ({
     getUserStatus: jest.fn(),
     recordWithdrawal: jest.fn(),
     getUserByUsername: jest.fn(),
+    // Add new functions for Aetherian Vault
+    getPlayerAetherProgress: jest.fn(),
+    updatePlayerAetherProgress: jest.fn(),
+    getJackpotPools: jest.fn(),
+    updateJackpotPool: jest.fn(),
+    resetJackpot: jest.fn(),
 }));
 
 // 2. Now that the mock is defined, we can import the mocked functions to control them.
