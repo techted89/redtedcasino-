@@ -1,5 +1,5 @@
 import express from 'express';
-import bcrypt from 'bcrypt';
+import * as ethers from 'ethers';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
@@ -22,9 +22,8 @@ app.use(helmet());
 app.use(express.json());
 
 // --- CORS Configuration ---
-// This must be placed before any routes are defined.
 const corsOptions = {
-  origin: 'http://redtedcasino.com',
+  origin: 'http://74.208.167.101',
   optionsSuccessStatus: 200 // For legacy browser support
 };
 app.use(cors(corsOptions));
@@ -37,13 +36,11 @@ app.post('/api/users/login-web3', async (req, res) => {
             return res.status(400).json({ message: 'A valid walletAddress is required' });
         }
 
-        // Find or create the user in the database
         let user = await getUserByWalletAddress(walletAddress);
         if (!user) {
             user = await createUserWithWallet(walletAddress);
         }
 
-        // Generate JWT for the user session
         const token = jwt.sign(
             { walletAddress: user.walletAddress, isAdmin: user.isAdmin },
             config.jwtSecret,
@@ -68,23 +65,21 @@ app.get('/api/games', (req, res) => {
         id: game.id,
         name: game.name,
         backgroundImage: game.backgroundImage,
-        gameUrl: game.gameUrl // Include the gameUrl for client-side routing
+        gameUrl: game.gameUrl
     }));
     res.json(gamesList);
 });
 
 // --- API ROUTERS ---
 app.use('/api', aetherianVaultRouter);
-app.use('/api', onchainRouter); // Mount the new on-chain router
+app.use('/api', onchainRouter);
 app.use('/api/admin', adminRouter);
 
 // --- Static file serving for the client ---
-// This assumes the client files are in a directory named 'client' at the root
-// This is a common setup for single-page applications.
 app.use(express.static('client'));
 
 app.get('/', (req, res) => {
-  res.redirect('/index.html'); // Redirect root to the main client page
+  res.redirect('/index.html');
 });
 
 export default app; // Export the app for testing

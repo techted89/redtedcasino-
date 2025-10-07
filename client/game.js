@@ -12,6 +12,7 @@ class SlotMachineScene extends Phaser.Scene {
         this.reels = [];
         this.isSpinning = false;
         this.gameData = null; // Will be fetched from the server
+        this.onChainBalance = 0; // To store the fetched balance
     }
 
     preload() {
@@ -22,8 +23,8 @@ class SlotMachineScene extends Phaser.Scene {
         // Fetch all initial data in parallel
         Promise.all([
             apiRequest('/api/games', 'GET', null, 'casinoUserToken'),
-            apiRequest('/api/aether-progress', 'GET', null, 'casinoUserToken'), // Assuming this endpoint exists
-            apiRequest('/api/jackpots', 'GET', null, 'casinoUserToken') // Assuming this endpoint exists
+            apiRequest('/api/aether-progress', 'GET', null, 'casinoUserToken'),
+            apiRequest('/api/jackpots', 'GET', null, 'casinoUserToken')
         ])
         .then(([games, aetherProgress, jackpots]) => {
             this.gameData = games.find(g => g.id === this.gameId);
@@ -123,23 +124,19 @@ class SlotMachineScene extends Phaser.Scene {
         }
     }
 
-    // New function to query and update balance from the blockchain
     async updateOnChainBalance() {
         try {
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const signer = provider.getSigner();
             const userAddress = await signer.getAddress();
-            // Note: In a real app, this config would be fetched from the server securely
-            const web3Config = {
-                contractAddress: '0xYourContractAddressHere',
-                abi: ["function balanceOf(address account) view returns (uint256)"]
-            };
-            const erc20Contract = new ethers.Contract(web3Config.contractAddress, web3Config.abi, provider);
+            const web3Config = await apiRequest('/api/web3-config'); // Fetch config from server
+            const erc20Contract = new ethers.Contract(web3Config.erc20ContractAddress, web3Config.erc20Abi, provider);
 
             const balanceWei = await erc20Contract.balanceOf(userAddress);
-            const balanceFormatted = ethers.utils.formatUnits(balanceWei, 18); // Assuming 18 decimals
+            const balanceFormatted = ethers.utils.formatUnits(balanceWei, 18);
 
-            this.balanceText.setText(`Balance: ${parseFloat(balanceFormatted).toFixed(4)}`);
+            this.onChainBalance = parseFloat(balanceFormatted);
+            this.balanceText.setText(`Balance: ${this.onChainBalance.toFixed(4)}`);
         } catch (error) {
             console.error('Could not fetch balance:', error);
             this.balanceText.setText('Balance: Error');
@@ -148,19 +145,18 @@ class SlotMachineScene extends Phaser.Scene {
 
     async spin() {
         if (this.isSpinning) return;
+        if (this.onChainBalance < this.betAmount) {
+            this.winningsText.setText('Insufficient Balance!');
+            return;
+        }
         this.isSpinning = true;
         this.winningsText.setText('Awaiting wallet approval...');
 
         try {
-            // --- Web3 Transaction Flow ---
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             const signer = provider.getSigner();
-            const web3Config = {
-                contractAddress: '0xYourContractAddressHere',
-                treasuryAddress: '0xYourTreasuryAddressHere',
-                abi: ["function approve(address spender, uint256 amount) returns (bool)"]
-            };
-            const erc20Contract = new ethers.Contract(web3Config.contractAddress, web3Config.abi, signer);
+            const web3Config = await apiRequest('/api/web3-config');
+            const erc20Contract = new ethers.Contract(web3Config.erc20ContractAddress, web3Config.erc20Abi, signer);
 
             const betAmountInWei = ethers.utils.parseUnits(this.betAmount.toString(), 18);
             const approveTx = await erc20Contract.approve(web3Config.treasuryAddress, betAmountInWei);
@@ -183,13 +179,12 @@ class SlotMachineScene extends Phaser.Scene {
                 this.winningsText.setText('Try Again!');
             }
 
-            // Refresh balance from the blockchain after the spin is settled
             this.updateOnChainBalance();
 
         } catch (err) {
             console.error('Spin failed:', err);
             this.winningsText.setText(err.message || 'An error occurred.');
-            this.updateOnChainBalance(); // Also update balance on error
+            this.updateOnChainBalance();
         } finally {
             this.isSpinning = false;
         }
@@ -215,7 +210,7 @@ const config = {
     height: 600,
     parent: 'phaser-container',
     backgroundColor: '#1a1a1a',
-    scene: [SlotMachineScene] // Only load the main slot machine scene
+    scene: [SlotMachineScene]
 };
 
 const game = new Phaser.Game(config);
