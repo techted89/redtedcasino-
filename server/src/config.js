@@ -9,6 +9,21 @@ export let config = {
   },
   adminPassword: process.env.ADMIN_PASSWORD || 'supersecretpassword',
   jwtSecret: process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev',
+
+  // --- Web3 Configuration ---
+  web3: {
+    polygonRpcUrl: process.env.POLYGON_RPC_URL || 'https://polygon-rpc.com', // Default to a public RPC
+    treasuryWalletPrivateKey: process.env.TREASURY_WALLET_PRIVATE_KEY || '',
+    erc20ContractAddress: process.env.ERC20_CONTRACT_ADDRESS || '0xYourContractAddressHere',
+    erc20Abi: [
+      // A minimal ABI for ERC20 transfer and approval functions
+      "function transfer(address to, uint256 amount) returns (bool)",
+      "function transferFrom(address from, address to, uint256 amount) returns (bool)",
+      "function approve(address spender, uint256 amount) returns (bool)",
+      "function balanceOf(address account) view returns (uint256)"
+    ]
+  },
+
   games: {
     'aetherian-vault': {
       id: 'aetherian-vault',

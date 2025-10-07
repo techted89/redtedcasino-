@@ -3,96 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Red Ted Casino</title>
-    <style>/* ... styles omitted for brevity ... */</style>
+    <title>Login - Aetherian Vault</title>
+    <!-- Include ethers.js library -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #1a1a1a; color: white; }
+        .container { text-align: center; padding: 40px; background-color: #2c2c2c; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1 { color: #00ffff; margin-bottom: 20px; }
+        #connect-wallet-btn { font-size: 18px; color: #1a1a1a; background-color: #00ffff; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; transition: background-color 0.3s; }
+        #connect-wallet-btn:hover { background-color: #fff; }
+        #error-message { color: #ff4d4d; margin-top: 20px; }
+    </style>
 </head>
 <body>
 
-<div class="login-container">...</div>
-<div id="password-modal" class="modal-backdrop hidden">...</div>
-<div id="profile-modal" class="modal-backdrop hidden">...</div>
+<div class="container">
+    <h1>Aetherian Vault</h1>
+    <p>Connect your Polygon wallet to play.</p>
+    <button id="connect-wallet-btn">Connect Wallet</button>
+    <p id="error-message"></p>
+</div>
 
-
-<script src="utils.js"></script>
-<script>
-    const loginForm = document.getElementById('user-login-form');
-    const errorMessage = document.getElementById('error-message');
-    const passwordModal = document.getElementById('password-modal');
-    const passwordForm = document.getElementById('password-change-form');
-    const passwordErrorMessage = document.getElementById('password-error-message');
-    const profileModal = document.getElementById('profile-modal');
-    const profileForm = document.getElementById('profile-update-form');
-    const profileErrorMessage = document.getElementById('profile-error-message');
-
-    async function checkUserStatus() {
-        try {
-            const status = await apiRequest('/api/user/status', 'GET', null, 'casinoUserToken');
-            if (!status.passwordChanged) {
-                passwordModal.classList.remove('hidden');
-            } else if (!status.profileCompleted) {
-                profileModal.classList.remove('hidden');
-            } else {
-                window.location.href = 'game.html';
-            }
-        } catch (error) {
-            errorMessage.textContent = error.message;
-        }
-    }
-
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        errorMessage.textContent = '';
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/users/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Login failed');
-
-            sessionStorage.setItem('casinoUser', JSON.stringify(data.user));
-            sessionStorage.setItem('casinoUserToken', data.token);
-            await checkUserStatus();
-        } catch (err) {
-            errorMessage.textContent = err.message;
-        }
-    });
-
-    passwordForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-        passwordErrorMessage.textContent = '';
-        if (newPassword !== confirmPassword) { passwordErrorMessage.textContent = 'Passwords do not match.'; return; }
-        if (newPassword.length < 8) { passwordErrorMessage.textContent = 'Password must be at least 8 characters.'; return; }
-        try {
-            await apiRequest('/api/user/update-password', 'POST', { newPassword }, 'casinoUserToken');
-            passwordModal.classList.add('hidden');
-            await checkUserStatus();
-        } catch (error) {
-            passwordErrorMessage.textContent = error.message;
-        }
-    });
-
-    profileForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const firstName = document.getElementById('update-firstname').value;
-        const lastName = document.getElementById('update-lastname').value;
-        const age = parseInt(document.getElementById('update-age').value, 10);
-        profileErrorMessage.textContent = '';
-        if (!firstName || !lastName || !age || age <= 0) { profileErrorMessage.textContent = 'Please fill out all fields with valid data.'; return; }
-        try {
-            await apiRequest('/api/user/update-profile', 'POST', { firstName, lastName, age }, 'casinoUserToken');
-            profileModal.classList.add('hidden');
-            await checkUserStatus();
-        } catch (error) {
-            profileErrorMessage.textContent = error.message;
-        }
-    });
-</script>
 <script src="app.js"></script>
 
 </body>

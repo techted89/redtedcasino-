@@ -76,7 +76,8 @@ class SlotMachineScene extends Phaser.Scene {
         this.updateAscensionMeter();
 
         // Player Info & Actions
-        this.balanceText = this.add.text(20, 120, `Balance: ${this.user.balance.toFixed(2)}`, { fontSize: '20px', fill: '#fff' });
+        this.balanceText = this.add.text(20, 120, `Balance: Fetching...`, { fontSize: '20px', fill: '#fff' });
+        this.updateOnChainBalance(); // Fetch initial balance
         this.winningsText = this.add.text(400, 500, '', { fontSize: '28px', fill: '#ffd700' }).setOrigin(0.5);
 
         // Controls
@@ -122,51 +123,73 @@ class SlotMachineScene extends Phaser.Scene {
         }
     }
 
+    // New function to query and update balance from the blockchain
+    async updateOnChainBalance() {
+        try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            const userAddress = await signer.getAddress();
+            // Note: In a real app, this config would be fetched from the server securely
+            const web3Config = {
+                contractAddress: '0xYourContractAddressHere',
+                abi: ["function balanceOf(address account) view returns (uint256)"]
+            };
+            const erc20Contract = new ethers.Contract(web3Config.contractAddress, web3Config.abi, provider);
+
+            const balanceWei = await erc20Contract.balanceOf(userAddress);
+            const balanceFormatted = ethers.utils.formatUnits(balanceWei, 18); // Assuming 18 decimals
+
+            this.balanceText.setText(`Balance: ${parseFloat(balanceFormatted).toFixed(4)}`);
+        } catch (error) {
+            console.error('Could not fetch balance:', error);
+            this.balanceText.setText('Balance: Error');
+        }
+    }
+
     async spin() {
         if (this.isSpinning) return;
-        if (this.user.balance < this.betAmount) {
-            this.winningsText.setText('Insufficient Balance!');
-            return;
-        }
         this.isSpinning = true;
-        this.winningsText.setText('');
-
-        // Visual spinning effect
-        this.reels.forEach(reelContainer => {
-            this.tweens.add({
-                targets: reelContainer,
-                y: reelContainer.y + 10,
-                ease: 'Power2',
-                duration: 100,
-                yoyo: true,
-                repeat: 5
-            });
-        });
+        this.winningsText.setText('Awaiting wallet approval...');
 
         try {
-            // Call the new dedicated endpoint
-            const data = await apiRequest('/api/spin/aetherian-vault', 'POST', {
+            // --- Web3 Transaction Flow ---
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            const web3Config = {
+                contractAddress: '0xYourContractAddressHere',
+                treasuryAddress: '0xYourTreasuryAddressHere',
+                abi: ["function approve(address spender, uint256 amount) returns (bool)"]
+            };
+            const erc20Contract = new ethers.Contract(web3Config.contractAddress, web3Config.abi, signer);
+
+            const betAmountInWei = ethers.utils.parseUnits(this.betAmount.toString(), 18);
+            const approveTx = await erc20Contract.approve(web3Config.treasuryAddress, betAmountInWei);
+
+            this.winningsText.setText('Approving on-chain...');
+            await approveTx.wait();
+
+            this.winningsText.setText('Spinning...');
+            const data = await apiRequest('/api/spin-onchain', 'POST', {
                 betAmount: this.betAmount
             }, 'casinoUserToken');
 
-            // Update user balance in session and UI
-            this.user.balance = data.newBalance;
-            sessionStorage.setItem('casinoUser', JSON.stringify(this.user));
-            this.balanceText.setText(`Balance: ${this.user.balance.toFixed(2)}`);
-
-            // Update Aether progression and UI
             this.aetherProgress = data.aetherProgress;
             this.updateAscensionMeter();
-
-            // Display the final reel results from the server
             this.displayResults(data.reels);
 
             if (data.winnings > 0) {
                 this.winningsText.setText(`YOU WON: ${data.winnings}`);
+            } else {
+                this.winningsText.setText('Try Again!');
             }
 
+            // Refresh balance from the blockchain after the spin is settled
+            this.updateOnChainBalance();
+
         } catch (err) {
-            this.winningsText.setText(`Error: ${err.message}`);
+            console.error('Spin failed:', err);
+            this.winningsText.setText(err.message || 'An error occurred.');
+            this.updateOnChainBalance(); // Also update balance on error
         } finally {
             this.isSpinning = false;
         }

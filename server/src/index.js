@@ -6,12 +6,11 @@ import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 
 // API Routers
-import spinRouter from './api/spin.js';
 import adminRouter from './api/admin.js';
-import userRouter from './api/user.js';
 import aetherianVaultRouter from './api/aetherianVault.js';
+import onchainRouter from './api/onchain.js';
 // Database Operations
-import { getUserByUsername } from './database/operations.js';
+import { getUserByWalletAddress, createUserWithWallet } from './database/operations.js';
 
 // Config
 import { config } from './config.js';
@@ -30,57 +29,35 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-// --- USER AUTHENTICATION (now secure) ---
-
-const loginLimiter = rateLimit({
-	windowMs: 60 * 60 * 1000, // 1 hour
-	limit: 20, // Limit each IP to 20 login requests per `window` (here, per hour).
-	standardHeaders: 'draft-7',
-	legacyHeaders: false,
-});
-
-app.post('/api/users/login', loginLimiter, async (req, res) => {
+// --- Web3 User Authentication ---
+app.post('/api/users/login-web3', async (req, res) => {
     try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-            return res.status(400).json({ message: 'Username and password are required' });
+        const { walletAddress } = req.body;
+        if (!walletAddress || !ethers.utils.isAddress(walletAddress)) {
+            return res.status(400).json({ message: 'A valid walletAddress is required' });
         }
 
-        const user = await getUserByUsername(username);
-
-        // Security: Check if user exists. We don't check for admin status here.
+        // Find or create the user in the database
+        let user = await getUserByWalletAddress(walletAddress);
         if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            user = await createUserWithWallet(walletAddress);
         }
 
-        // Admins should not use this login form.
-        if (user.isAdmin) {
-             return res.status(403).json({ message: 'Admin login is handled separately. Please use the admin portal.' });
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        // Generate JWT for the regular user
+        // Generate JWT for the user session
         const token = jwt.sign(
-            { userId: user.id, username: user.username, isAdmin: user.isAdmin },
+            { walletAddress: user.walletAddress, isAdmin: user.isAdmin },
             config.jwtSecret,
-            { expiresIn: '8h' } // Longer expiration for regular users
+            { expiresIn: '8h' }
         );
 
-        // Exclude password from the user object returned to the client
-        const { password: _, ...userWithoutPassword } = user;
-
         res.json({
-            message: 'Login successful',
+            message: 'Web3 login successful',
             token,
-            user: userWithoutPassword
+            user
         });
 
     } catch (error) {
-        console.error('User login error:', error);
+        console.error('Web3 login error:', error);
         res.status(500).json({ message: 'An internal server error occurred.' });
     }
 });
@@ -97,10 +74,9 @@ app.get('/api/games', (req, res) => {
 });
 
 // --- API ROUTERS ---
-app.use('/api', spinRouter);
-app.use('/api', aetherianVaultRouter); // Mount the new router
+app.use('/api', aetherianVaultRouter);
+app.use('/api', onchainRouter); // Mount the new on-chain router
 app.use('/api/admin', adminRouter);
-app.use('/api/user', userRouter);
 
 // --- Static file serving for the client ---
 // This assumes the client files are in a directory named 'client' at the root

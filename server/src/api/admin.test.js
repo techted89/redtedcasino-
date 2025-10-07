@@ -7,26 +7,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-
 
 // 1. Set up the mock for the module. This MUST come before any imports that use it.
 jest.unstable_mockModule('../database/operations.js', () => ({
+    // Keep only the functions that still exist
     getAllUsers: jest.fn(),
-    createUser: jest.fn(),
-    getUser: jest.fn(),
-    updateUserBalance: jest.fn(),
+    getUserByWalletAddress: jest.fn(),
+    createUserWithWallet: jest.fn(),
     getGameConfiguration: jest.fn(),
-    updateGameStatistics: jest.fn(),
     updatePaytable: jest.fn(),
     getGameStatistics: jest.fn(),
-    createWithdrawalRequest: jest.fn(),
-    getWithdrawalRequests: jest.fn(),
-    updateWithdrawalRequestStatus: jest.fn(),
-    setUserBalance: jest.fn(),
-    createAdminUser: jest.fn(),
-    updateUserPassword: jest.fn(),
-    forcePasswordChange: jest.fn(),
-    updateUserProfile: jest.fn(),
-    getUserStatus: jest.fn(),
-    recordWithdrawal: jest.fn(),
-    getUserByUsername: jest.fn(),
-    // Add new functions for Aetherian Vault
+    updateGameStatistics: jest.fn(),
     getPlayerAetherProgress: jest.fn(),
     updatePlayerAetherProgress: jest.fn(),
     getJackpotPools: jest.fn(),

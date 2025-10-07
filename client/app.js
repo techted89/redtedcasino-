@@ -51,85 +51,48 @@ async function apiRequest(endpoint, method = 'GET', body = null, tokenType = 'ad
     return; // Return nothing for non-json responses
 }
 
-// --- Login Page Logic ---
-if (document.getElementById('user-login-form')) {
-    const loginForm = document.getElementById('user-login-form');
+// --- Web3 Login Page Logic ---
+if (document.getElementById('connect-wallet-btn')) {
+    const connectButton = document.getElementById('connect-wallet-btn');
     const errorMessage = document.getElementById('error-message');
-    const passwordModal = document.getElementById('password-modal');
-    const passwordForm = document.getElementById('password-change-form');
-    const passwordErrorMessage = document.getElementById('password-error-message');
-    const profileModal = document.getElementById('profile-modal');
-    const profileForm = document.getElementById('profile-update-form');
-    const profileErrorMessage = document.getElementById('profile-error-message');
 
-    async function checkUserStatus() {
-        try {
-            const status = await apiRequest('/api/user/status', 'GET', null, 'casinoUserToken');
-            if (!status.passwordChanged) {
-                passwordModal.classList.remove('hidden');
-            } else if (!status.profileCompleted) {
-                profileModal.classList.remove('hidden');
-            } else {
-                window.location.href = 'game-selection.html';
-            }
-        } catch (error) {
-            errorMessage.textContent = error.message;
-        }
-    }
-
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
+    const connectWallet = async () => {
         errorMessage.textContent = '';
         try {
-            const response = await fetch(`${API_BASE_URL}/api/users/login`, {
+            if (!window.ethereum) {
+                throw new Error('No crypto wallet found. Please install it.');
+            }
+
+            // Request account access
+            await window.ethereum.send('eth_requestAccounts');
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const signer = provider.getSigner();
+            const walletAddress = await signer.getAddress();
+
+            // Log the user in on the backend to get a session token (JWT)
+            const response = await fetch(`${API_BASE_URL}/api/users/login-web3`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ walletAddress })
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || 'Login failed');
 
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'Web3 login failed');
+
+            // Store user data and token
             sessionStorage.setItem('casinoUser', JSON.stringify(data.user));
             sessionStorage.setItem('casinoUserToken', data.token);
-            await checkUserStatus();
+
+            // Redirect to the game
+            window.location.href = 'game.html';
+
         } catch (err) {
+            console.error(err);
             errorMessage.textContent = err.message;
         }
-    });
+    };
 
-    passwordForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-        passwordErrorMessage.textContent = '';
-        if (newPassword !== confirmPassword) { passwordErrorMessage.textContent = 'Passwords do not match.'; return; }
-        if (newPassword.length < 8) { passwordErrorMessage.textContent = 'Password must be at least 8 characters.'; return; }
-        try {
-            await apiRequest('/api/user/update-password', 'POST', { newPassword }, 'casinoUserToken');
-            passwordModal.classList.add('hidden');
-            await checkUserStatus();
-        } catch (error) {
-            passwordErrorMessage.textContent = error.message;
-        }
-    });
-
-    profileForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const firstName = document.getElementById('update-firstname').value;
-        const lastName = document.getElementById('update-lastname').value;
-        const age = parseInt(document.getElementById('update-age').value, 10);
-        profileErrorMessage.textContent = '';
-        if (!firstName || !lastName || !age || age <= 0) { profileErrorMessage.textContent = 'Please fill out all fields with valid data.'; return; }
-        try {
-            await apiRequest('/api/user/update-profile', 'POST', { firstName, lastName, age }, 'casinoUserToken');
-            profileModal.classList.add('hidden');
-            await checkUserStatus();
-        } catch (error) {
-            profileErrorMessage.textContent = error.message;
-        }
-    });
+    connectButton.addEventListener('click', connectWallet);
 }
 
 // --- Admin Page Logic ---
