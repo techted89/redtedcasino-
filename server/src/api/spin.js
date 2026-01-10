@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import crypto from 'crypto';
 import { getUser, updateUserBalance, getGameConfiguration, updateGameStatistics } from '../database/operations.js';
+import { getFromCache, setInCache } from '../gameConfigCache.js';
 import { config } from '../config.js';
 
 const router = Router();
@@ -102,7 +103,12 @@ router.post('/spin', async (req, res) => {
         }
 
         // --- Fetch dynamic game config from the database ---
-        const { paytable, symbolWeights } = await getGameConfiguration(gameId);
+        let cachedConfig = getFromCache(gameId);
+        if (!cachedConfig) {
+            cachedConfig = await getGameConfiguration(gameId);
+            setInCache(gameId, cachedConfig);
+        }
+        const { paytable, symbolWeights } = cachedConfig;
 
         // A game MUST have a paytable defined in the database.
         if (!paytable || Object.keys(paytable).length === 0) {
