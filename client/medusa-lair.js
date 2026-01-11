@@ -38,15 +38,23 @@ class MedusaLairScene extends Phaser.Scene {
     }
 
     initReels() {
-        const symbols = ['S1', 'S2', 'S3', 'S4', 'S5'];
+        const reelWidth = 100;
+        const symbolHeight = 100;
+        const numSymbolsPerReel = 10; // How many symbols to create in each reel column
+        const symbols = ['S1', 'S2', 'S3', 'S4', 'S5', 'WILD', 'JACKPOT'];
+
         for (let i = 0; i < 5; i++) {
-            const reel = [];
-            for (let j = 0; j < 3; j++) {
-                const symbol = this.add.image(i * 100 - 200, j * 100 - 100, symbols[Phaser.Math.Between(0, symbols.length - 1)]);
-                this.reelsContainer.add(symbol);
-                reel.push(symbol);
+            const reelContainer = this.add.container(i * reelWidth - (reelWidth * 2), 0);
+            const reel = { container: reelContainer, symbols: [] };
+
+            for (let j = 0; j < numSymbolsPerReel; j++) {
+                const symbol = this.add.image(0, j * symbolHeight - (symbolHeight * Math.floor(numSymbolsPerReel / 2)), symbols[Phaser.Math.Between(0, symbols.length - 1)]);
+                reelContainer.add(symbol);
+                reel.symbols.push(symbol);
             }
+
             this.reels.push(reel);
+            this.reelsContainer.add(reelContainer);
         }
     }
 
@@ -55,14 +63,9 @@ class MedusaLairScene extends Phaser.Scene {
         this.isSpinning = true;
         this.winningsText.setText('');
 
-        // Simple spinning animation
-        let spinDuration = 1000;
-        this.tweens.add({
-            targets: this.reelsContainer,
-            y: 310,
-            ease: 'Power2',
-            duration: spinDuration / 2,
-            yoyo: true,
+        const spinDuration = 2000;
+        const reelPromises = this.reels.map((reel, i) => {
+            return this.animateReel(reel, i, spinDuration);
         });
 
         try {
@@ -84,11 +87,13 @@ class MedusaLairScene extends Phaser.Scene {
                 throw new Error(errorData.message);
             }
 
+            await Promise.all(reelPromises);
             const data = await response.json();
             this.displayResults(data.reels);
             this.updateBalance(data.newBalance);
             if (data.winnings > 0) {
                 this.winningsText.setText(`You won: ${data.winnings}`);
+                this.playWinAnimation();
             }
 
         } catch (error) {
@@ -100,21 +105,65 @@ class MedusaLairScene extends Phaser.Scene {
     }
 
     displayResults(reelUrls) {
-        const symbolKeys = reelUrls.map(url => {
-            const parts = url.split('/');
-            return parts[parts.length - 1].split('.')[0];
-        });
+        const finalSymbols = reelUrls.map(url => url.split('/').pop().split('.').shift());
 
-        for (let i = 0; i < 5; i++) {
-            // For simplicity, we just update the top symbol of each reel
-            this.reels[i][0].setTexture(symbolKeys[i]);
-        }
+        this.reels.forEach((reel, i) => {
+            // Set the final symbol at the top (visible) position
+            reel.symbols[0].setTexture(finalSymbols[i]);
+
+            // Fill the rest of the reel with random symbols for the next spin
+            for (let j = 1; j < reel.symbols.length; j++) {
+                const randomSymbol = this.textures.get.keys[Phaser.Math.Between(1, 7)]; // Assuming 7 symbols + background
+                reel.symbols[j].setTexture(randomSymbol);
+            }
+        });
     }
 
     updateBalance(newBalance) {
         this.user.balance = newBalance;
         sessionStorage.setItem('casinoUser', JSON.stringify(this.user));
         this.balanceText.setText(`Balance: ${newBalance}`);
+    }
+
+    animateReel(reel, index, duration) {
+        return new Promise(resolve => {
+            const symbolHeight = 100;
+            const finalPosition = reel.container.y;
+            const startPosition = finalPosition - (reel.symbols.length * symbolHeight);
+
+            this.time.delayedCall(index * 200, () => {
+                this.tweens.add({
+                    targets: reel.container,
+                    y: startPosition,
+                    ease: 'Linear',
+                    duration: duration,
+                    repeat: -1,
+                });
+
+                setTimeout(() => {
+                    this.tweens.killTweensOf(reel.container);
+                    this.tweens.add({
+                        targets: reel.container,
+                        y: finalPosition,
+                        ease: 'Cubic.easeOut',
+                        duration: 750,
+                        onComplete: () => resolve()
+                    });
+                }, duration + index * 500);
+            });
+        });
+    }
+
+    playWinAnimation() {
+        const particles = this.add.particles('S1');
+        const emitter = particles.createEmitter({
+            speed: 100,
+            scale: { start: 1, end: 0 },
+            blendMode: 'ADD'
+        });
+
+        emitter.startFollow(this.winningsText);
+        setTimeout(() => particles.destroy(), 1000);
     }
 }
 
