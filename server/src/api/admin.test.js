@@ -1,47 +1,41 @@
-import { jest, describe, it, expect, beforeEach } from '@jest/globals';
+import { jest, describe, it, expect, beforeAll, beforeEach, afterAll } from '@jest/globals';
 import request from 'supertest';
 import jwt from 'jsonwebtoken';
+import pool from '../database/connection.js';
 
-// Use the same secret as the application
 const JWT_SECRET = process.env.JWT_SECRET || 'a-very-secret-and-complex-key-for-dev';
 
-// 1. Set up the mock for the module. This MUST come before any imports that use it.
 jest.unstable_mockModule('../database/operations.js', () => ({
     getAllUsers: jest.fn(),
-    createUser: jest.fn(),
-    getUser: jest.fn(),
-    updateUserBalance: jest.fn(),
-    getGameConfiguration: jest.fn(),
-    updateGameStatistics: jest.fn(),
-    updatePaytable: jest.fn(),
-    getGameStatistics: jest.fn(),
-    createWithdrawalRequest: jest.fn(),
-    getWithdrawalRequests: jest.fn(),
-    updateWithdrawalRequestStatus: jest.fn(),
-    setUserBalance: jest.fn(),
-    createAdminUser: jest.fn(),
-    updateUserPassword: jest.fn(),
-    forcePasswordChange: jest.fn(),
-    updateUserProfile: jest.fn(),
-    getUserStatus: jest.fn(),
-    recordWithdrawal: jest.fn(),
     getUserByUsername: jest.fn(),
+    getGameConfiguration: jest.fn(),
 }));
 
-// 2. Now that the mock is defined, we can import the mocked functions to control them.
-const { getAllUsers, getGameConfiguration } = await import('../database/operations.js');
-
-// 3. And import the application code, which will now see the mocked version.
-const { default: app } = await import('../index.js');
-
+let app;
+let getAllUsers;
+let getGameConfiguration;
+let getUserByUsername;
 
 describe('Admin API', () => {
 
-    // Clear mocks before each test to ensure a clean state
+    beforeAll(async () => {
+        const dbOps = await import('../database/operations.js');
+        getAllUsers = dbOps.getAllUsers;
+        getUserByUsername = dbOps.getUserByUsername;
+        getGameConfiguration = dbOps.getGameConfiguration;
+
+        const index = await import('../index.js');
+        app = index.default;
+    });
+
     beforeEach(() => {
         jest.clearAllMocks();
-        // Since we are testing auth, we need to mock the DB call inside getGameConfiguration
         getGameConfiguration.mockResolvedValue({ paytable: {}, symbolWeights: {} });
+        getUserByUsername.mockResolvedValue({ id: 1, username: 'admin', password: 'hashedpassword', isAdmin: true });
+    });
+
+    afterAll(async () => {
+        await pool.end();
     });
 
     describe('GET /api/admin/users', () => {
@@ -52,7 +46,7 @@ describe('Admin API', () => {
         });
 
         it('should return 403 Forbidden if token is not for an admin', async () => {
-            const nonAdminToken = jwt.sign({ id: 2, username: 'test', isAdmin: false }, JWT_SECRET, { expiresIn: '1h' });
+            const nonAdminToken = jwt.sign({ userId: 2, username: 'test', isAdmin: false }, JWT_SECRET, { expiresIn: '1h' });
             const response = await request(app)
                 .get('/api/admin/users')
                 .set('Authorization', `Bearer ${nonAdminToken}`);
@@ -67,7 +61,7 @@ describe('Admin API', () => {
             };
             getAllUsers.mockResolvedValue(mockUsers);
 
-            const adminToken = jwt.sign({ id: 1, username: 'admin', isAdmin: true }, JWT_SECRET, { expiresIn: '1h' });
+            const adminToken = jwt.sign({ userId: 1, username: 'admin', isAdmin: true }, JWT_SECRET, { expiresIn: '1h' });
 
             const response = await request(app)
                 .get('/api/admin/users')
@@ -78,5 +72,4 @@ describe('Admin API', () => {
             expect(response.body).toEqual(mockUsers);
         });
     });
-
 });

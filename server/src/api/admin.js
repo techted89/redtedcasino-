@@ -15,6 +15,7 @@ import {
     getGameStatistics,
     getGameConfiguration
 } from '../database/operations.js';
+import { clearCache } from '../gameConfigCache.js';
 import { config } from '../config.js';
 import { checkAuth } from '../middleware/auth.js';
 import { rateLimit } from 'express-rate-limit';
@@ -71,6 +72,12 @@ router.post('/login', loginLimiter, async (req, res) => {
 
 // All routes below this point are protected by the new, shared admin auth middleware.
 router.use(checkAuth(true));
+
+// --- CACHE MANAGEMENT ---
+router.post('/clear-cache', (req, res) => {
+    clearCache();
+    res.status(200).json({ message: 'Game configuration cache cleared successfully.' });
+});
 
 // --- GAME MANAGEMENT ---
 router.get('/games', (req, res) => {
